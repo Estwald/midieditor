@@ -76,7 +76,6 @@ void Terminal::execute(QString startString, QString inPort[], QString outPort[])
             _process->kill();
         }
 
-        qWarning("pepe1zc");
         _process = new QProcess();
         if(!_process)
             ERROR_CRITICAL_NO_MEMORY();
@@ -150,11 +149,11 @@ void Terminal::processStarted()
             if(MidiOutput::outputPort(n) == "" && _outPort[n] != "")
                 try_output = true;
         }
-qWarning("pepe1zcaa");
+
     // if not both are set, try again in 1 second
     if ((try_output) || (try_input)) {
         QTimer* timer = new QTimer();
-        if(!timer)  ERROR_CRITICAL_NO_MEMORY();
+        if(!timer) ERROR_CRITICAL_NO_MEMORY();
         connect(timer, SIGNAL(timeout()), this, SLOT(processStarted()));
         timer->setSingleShot(true);
         timer->start(1000);
