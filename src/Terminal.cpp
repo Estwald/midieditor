@@ -75,6 +75,8 @@ void Terminal::execute(QString startString, QString inPort[], QString outPort[])
         if (_process) {
             _process->kill();
         }
+
+        qWarning("pepe1zc");
         _process = new QProcess();
         if(!_process)
             ERROR_CRITICAL_NO_MEMORY();
@@ -139,18 +141,20 @@ void Terminal::processStarted()
 
     bool try_output = false;
 
+#ifdef USE_FLUIDSYNTH
     if(!MidiOutput::FluidSynthTracksAuto)
+#endif
         for(int n = 0; n < MAX_OUTPUT_DEVICES; n++) {
             if(MidiOutput::AllTracksToOne && n != 0)
                 break;
             if(MidiOutput::outputPort(n) == "" && _outPort[n] != "")
                 try_output = true;
         }
-
+qWarning("pepe1zcaa");
     // if not both are set, try again in 1 second
     if ((try_output) || (try_input)) {
         QTimer* timer = new QTimer();
-            ERROR_CRITICAL_NO_MEMORY();
+        if(!timer)  ERROR_CRITICAL_NO_MEMORY();
         connect(timer, SIGNAL(timeout()), this, SLOT(processStarted()));
         timer->setSingleShot(true);
         timer->start(1000);
