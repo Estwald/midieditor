@@ -138,10 +138,9 @@ void EventTool::selectEvent(MidiEvent* event, bool single, bool ignoreStr)
 
         if(ev1 || ev2 || ev3 || ev4 || ev5
             || ev6  || ev7 || ev8 || ev9 || ev10) {
-            if(_mainWindow->rightSplitterMode)
-                _mainWindow->upperTabWidget->setCurrentIndex(_mainWindow->EventSplitterTabPos);
-            else
-                _mainWindow->lowerTabWidget->setCurrentIndex(_mainWindow->EventSplitterTabPos);
+
+            _mainWindow->upperTabWidget->setCurrentIndex(_mainWindow->EventSplitterTabPos);
+
         }
     } else if (QApplication::keyboardModifiers().testFlag(Qt::ControlModifier) && !ignoreStr) {
         selected.removeAll(event);

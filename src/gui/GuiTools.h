@@ -18,10 +18,14 @@
 #include <QPainter>
 #include <QListWidget>
 #include <QMouseEvent>
+#include <QSplitter>
 
 #define MAX_TOOLTIP_TIME 5000
 #define TOOLTIP(c, t) {c->setToolTip(t); c->setToolTipDuration(MAX_TOOLTIP_TIME);}
 #define TOOLTIP2(c, t, time) {c->setToolTip(t); c->setToolTipDuration(time * 1000);}
+
+extern QString GroupBoxChecked1;
+extern QString GroupBoxChecked2;
 
 void msDelay(int ms);
 
@@ -45,6 +49,21 @@ protected:
 
 };
 
+enum qdiale_type
+{
+    QDIALE_DEFAULT = 0,
+    QDIALE_GRAY_NOTCH_BLACKDOT,
+    QDIALE_GRAY_NOTCH_BLACKLINE,
+    QDIALE_BLACK_NOTCH_BLACKDOT,
+    QDIALE_BLACK_NOTCH_BLACKLINE,
+    QDIALE_GREEN_NOTCH_BLACKLINE,
+    QDIALE_GRAY_NOTCH_WHITEDOT,
+    QDIALE_GRAY_NOTCH_WHITELINE,
+    QDIALE_BLACK_NOTCH_WHITEDOT,
+    QDIALE_BLACK_NOTCH_WHITELINE
+};
+
+
 class QDialE : public QDial {
 
     Q_OBJECT
@@ -59,7 +78,7 @@ public:
 
     QRect _r;
 
-    QDialE(QWidget* parent);
+    QDialE(QWidget* parent, qdiale_type type = QDIALE_DEFAULT, int steps = 1);
     ~QDialE();
 
     void setGeometry(const QRect& r);
@@ -72,6 +91,12 @@ protected:
 
     void mousePressEvent(QMouseEvent* event) override;
     bool event(QEvent *event) override;
+    void paintEvent(QPaintEvent *event) override;
+
+private:
+    QPixmap m_background;
+    bool flag_back = false;
+    int set_notch = 0;
 
 };
 
@@ -181,6 +206,52 @@ public:
     int value;
 
     chooseCC(QDialog *parent, int val);
+
 };
+
+
+enum qslider_type
+{
+    QSLIDER_DEFAULT = 0,
+    QSLIDER_DEFAULT_TINY,
+    QSLIDER_BLUE,
+    QSLIDER_BLUE_TINY,
+    QSLIDER_RED,
+    QSLIDER_RED_TINY,
+    QSLIDER_GREEN,
+    QSLIDER_GREEN_TINY,
+    QSLIDER_YELLOW,
+    QSLIDER_YELLOW_TINY,
+
+};
+
+class QSliderE : public QSlider {
+
+    Q_OBJECT
+
+public:
+
+    QSliderE(QWidget* parent, int nticks = 0, qslider_type type = QSLIDER_DEFAULT);
+
+    void setGeometry(const QRect& r);
+
+    void setOrientation(Qt::Orientation o);
+
+
+protected:
+
+    void paintEvent(QPaintEvent *) override;
+
+private:
+
+    QPixmap m_knob;
+    QPixmap m_knobh;
+    int type;
+    int nticks;
+
+};
+
+int MessageBoxinformation(QWidget *w, const QString& title, const QString& text, const QString Accept, const QString Destruct, const QString Cancel);
+int MessageBoxQuestion(QWidget *w, const QString& title, const QString& text, const QString Accept, const QString Destruct, const QString Cancel);
 
 #endif // GUITOOLS_H

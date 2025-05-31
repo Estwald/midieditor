@@ -409,7 +409,7 @@ void MidiInput::receiveMessage(double /*deltatime*/, std::vector<unsigned char>*
                     bool break_loop = true;
                     bool note_found = false;
                     int seq = seq_dev0;
-                    for(int n = 0; n < note_roll[seq].count(); n++) {
+                    for(int n = 0; n < note_roll[seq].length(); n++) {
                         if(!(note_roll[seq].at(n) & 128))
                             break_loop = false;
 
@@ -425,14 +425,14 @@ void MidiInput::receiveMessage(double /*deltatime*/, std::vector<unsigned char>*
                     }
 
                     // release if max notes
-                    if(note_roll[seq].count() >= 32) {
+                    if(note_roll[seq].length() >= 32) {
                         if(MidiPlayer::fileSequencer[seq])
                             MidiPlayer::fileSequencer[seq]->set_flush(note_roll[seq].at(0) & 127);
                         note_roll[seq] = note_roll[seq].right(31);
                     }
 
                     // delete repeat note
-                    for(int n = 0; n < note_roll[seq].count(); n++) {
+                    for(int n = 0; n < note_roll[seq].length(); n++) {
                        if((note_roll[seq].at(n) & 127) == (char) the_note) {
                             deleteIndexArray(note_roll[seq], n);
                             n= -1;
@@ -468,7 +468,7 @@ void MidiInput::receiveMessage(double /*deltatime*/, std::vector<unsigned char>*
                     bool break_loop = true;
                     bool note_found = false;
                     int seq = seq_dev1;
-                    for(int n = 0; n < note_roll[seq].count(); n++) {
+                    for(int n = 0; n < note_roll[seq].length(); n++) {
                         if(!(note_roll[seq].at(n) & 128))
                             break_loop = false;
 
@@ -484,14 +484,14 @@ void MidiInput::receiveMessage(double /*deltatime*/, std::vector<unsigned char>*
                     }
 
                            // release if max notes
-                    if(note_roll[seq].count() >= 32) {
+                    if(note_roll[seq].length() >= 32) {
                         if(MidiPlayer::fileSequencer[seq])
                             MidiPlayer::fileSequencer[seq]->set_flush(note_roll[seq].at(0) & 127);
                         note_roll[seq] = note_roll[seq].right(31);
                     }
 
                            // delete repeat note
-                    for(int n = 0; n < note_roll[seq].count(); n++) {
+                    for(int n = 0; n < note_roll[seq].length(); n++) {
                         if((note_roll[seq].at(n) & 127) == (char) the_note) {
                             deleteIndexArray(note_roll[seq], n);
                             n= -1;
@@ -526,9 +526,9 @@ void MidiInput::receiveMessage(double /*deltatime*/, std::vector<unsigned char>*
 
                     bool finded = false;
 
-                    if(note_roll[seq].count()) {
+                    if(note_roll[seq].length()) {
                        QByteArray temp;
-                       for(int n = 0; n < note_roll[seq].count(); n++) {
+                       for(int n = 0; n < note_roll[seq].length(); n++) {
 
                            if(MidiOutput::sequencer_cmd[seq_dev0] & SEQ_FLAG_INFINITE) {
                                temp.append(note_roll[seq].at(n) | 128);
@@ -576,9 +576,9 @@ void MidiInput::receiveMessage(double /*deltatime*/, std::vector<unsigned char>*
                     int seq = seq_dev1;
                     bool finded = false;
 
-                    if(note_roll[seq].count()) {
+                    if(note_roll[seq].length()) {
                         QByteArray temp;
-                        for(int n = 0; n < note_roll[seq].count(); n++) {
+                        for(int n = 0; n < note_roll[seq].length(); n++) {
                             if(MidiOutput::sequencer_cmd[seq_dev1] & SEQ_FLAG_INFINITE) {
                                 temp.append(note_roll[seq].at(n) | 128);
                                 //note_roll[seq].replace(note_roll[seq].at(n), note_roll[seq].at(n) | 128);
@@ -613,17 +613,17 @@ void MidiInput::receiveMessage(double /*deltatime*/, std::vector<unsigned char>*
 
                 }
 
-                if(!autorhythm0 && !note_roll[seq_dev0].count())
+                if(!autorhythm0 && !note_roll[seq_dev0].length())
                     MidiOutput::sequencer_cmd[seq_dev0] = SEQ_FLAG_STOP;
-                if(!autorhythm1 && !note_roll[seq_dev1].count())
+                if(!autorhythm1 && !note_roll[seq_dev1].length())
                     MidiOutput::sequencer_cmd[seq_dev1] = SEQ_FLAG_STOP;
 
             }
 
             // test it
-            if(!autorhythm0 && !note_roll[seq_dev0].count())
+            if(!autorhythm0 && !note_roll[seq_dev0].length())
                 MidiOutput::sequencer_cmd[seq_dev0] = SEQ_FLAG_STOP;
-            if(!autorhythm1 && !note_roll[seq_dev1].count())
+            if(!autorhythm1 && !note_roll[seq_dev1].length())
                 MidiOutput::sequencer_cmd[seq_dev1] = SEQ_FLAG_STOP;
 
             if(ret)
@@ -745,7 +745,7 @@ void MidiInput::receiveMessage(double /*deltatime*/, std::vector<unsigned char>*
                 if(note_finger < 0)
                     note_finger = note;
 /*
-                if(MidiOutput::sequencer_enabled[1] >= 0  && evt == 0x90 && id == DEVICE_SEQUENCER_ID + 1 && !note_roll[1].count()) {
+                if(MidiOutput::sequencer_enabled[1] >= 0  && evt == 0x90 && id == DEVICE_SEQUENCER_ID + 1 && !note_roll[1].length()) {
                     return;
                 }
 */
@@ -1273,7 +1273,7 @@ void MidiInput::send_thru(int pairdev, int is_effect, std::vector<unsigned char>
 {
 
     QByteArray a;
-    int channel = -1;
+    //int channel = -1;
 
     std::vector<unsigned char> message_out = *message;
 
@@ -1297,7 +1297,7 @@ void MidiInput::send_thru(int pairdev, int is_effect, std::vector<unsigned char>
                         a.append(0x80 | MidiOutput::standardChannel());
                     else
                         a.append(message_out.at(0));
-                    channel = a[0] & 15;
+                    //channel = a[0] & 15;
                     continue;
                 }
                 case 0x90: {
@@ -1313,7 +1313,7 @@ void MidiInput::send_thru(int pairdev, int is_effect, std::vector<unsigned char>
                                 ? (message_out.at(0) & 15)
                                 : MidiOutput::standardChannel());
 
-                    channel = a[0] & 15;
+                    //channel = a[0] & 15;
                     continue;
                 }
                 case 0xD0: {
@@ -1322,7 +1322,7 @@ void MidiInput::send_thru(int pairdev, int is_effect, std::vector<unsigned char>
                     else
                         a.append(message_out.at(0));
 
-                    channel = a[0] & 15;
+                    //channel = a[0] & 15;
                     continue;
                 }
                 case 0xC0: {
@@ -1335,7 +1335,7 @@ void MidiInput::send_thru(int pairdev, int is_effect, std::vector<unsigned char>
                         a.append(message_out.at(0));
                     }
 
-                    channel = a[0] & 15;
+                    //channel = a[0] & 15;
                     continue;
                 }
                 case 0xB0: {
@@ -1354,7 +1354,7 @@ void MidiInput::send_thru(int pairdev, int is_effect, std::vector<unsigned char>
 
                         a.append(message_out.at(0));
                     }
-                    channel = a[0] & 15;
+                    //channel = a[0] & 15;
                     continue;
                 }
                 case 0xA0: {
@@ -1362,7 +1362,7 @@ void MidiInput::send_thru(int pairdev, int is_effect, std::vector<unsigned char>
                         a.append(0xA0 | MidiOutput::standardChannel());
                     else
                         a.append(message_out.at(0));
-                    channel = a[0] & 15;
+                    //channel = a[0] & 15;
                     continue;
                 }
                 case 0xE0: {
@@ -1370,7 +1370,7 @@ void MidiInput::send_thru(int pairdev, int is_effect, std::vector<unsigned char>
                         a.append(0xE0 | MidiOutput::standardChannel());
                     else
                         a.append(message_out.at(0));
-                    channel = a[0] & 15;
+                    //channel = a[0] & 15;
                     continue;
                 }
             }

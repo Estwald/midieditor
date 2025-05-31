@@ -5,7 +5,7 @@ and the official page of the original author: https://midieditor.org
 
 Who are you?:
 
-Hi, my name is Francisco, I'm Spanish, I'm 51 years old and I've been programming
+Hi, my name is Francisco, I'm Spanish, I'm 55 years old and I've been programming
 all kinds of hobbyist machines for many years, from the ZX Spectrum to the PS3 console,
 where I was known with the nickname 'Estwald'. My native language is spanish and this
 has been translated from google translator... so sorry if it is not spelled correctly and
@@ -29,7 +29,7 @@ In any case, my contribution is here, for all people :D
 
 What's new here:
 
-- Fluid Synth (2.1.7) support and integration, with low latency buffer (Output buffer can be
+- Fluid Synth (2.4.6) support and integration, with low latency buffer (Output buffer can be
 from 512 bytes, to 2048 bytes. For low latency use 512). Output Sound support for 16bits
 signed or 32 bits (float), 96Khz. Fluid Synth is added as 'virtual' (internal) Midi Output device
 

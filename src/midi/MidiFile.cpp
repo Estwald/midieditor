@@ -565,12 +565,12 @@ int MidiFile::variableLengthvalue(QDataStream* content)
     return (int)v;
 }
 
-QMap<int, MidiEvent*>* MidiFile::timeSignatureEvents()
+QMultiMap<int, MidiEvent*>* MidiFile::timeSignatureEvents()
 {
     return channels[18]->eventMap();
 }
 
-QMap<int, MidiEvent*>* MidiFile::tempoEvents()
+QMultiMap<int, MidiEvent*>* MidiFile::tempoEvents()
 {
     return channels[17]->eventMap();
 }
@@ -916,7 +916,7 @@ extern int itHaveDrumList;
 QString MidiFile::drumName(int prog)
 {
     QString text = QString::asprintf("%3.3u - ",prog);
-    if(prog<0 || prog>127) return text+"undefined";
+    if((prog<0) || (prog>127)) return text + "undefined";
     if(itHaveDrumList) {
         text+= InstrumentList[128].name[prog];
         return text;
@@ -952,7 +952,7 @@ QString MidiFile::drumName(int prog)
 QString MidiFile::instrumentName(int bank, int prog)
 {
     QString text = QString::asprintf("%3.3u - ",prog);
-    if(prog<0 || prog>127 || bank<0 || bank>127) return text+"out of range";
+    if((prog<0) || (prog>127) || (bank<0) || (bank>127)) return text+"out of range";
     if(itHaveInstrumentList) {
         text+= InstrumentList[bank].name[prog];
         return text;
@@ -2156,7 +2156,7 @@ bool MidiFile::saveMidiEvents(QFile &f, QList<MidiEvent*>* events, bool selectMu
         data.append('r');
         data.append('k');
 
-        int trackLengthPos = data.count();
+        int trackLengthPos = data.length();
 
         data.append('\0');
         data.append('\0');
@@ -2176,12 +2176,12 @@ bool MidiFile::saveMidiEvents(QFile &f, QList<MidiEvent*>* events, bool selectMu
                 // write the deltaTime before the event
                 int time = tick - currentTick;
                 QByteArray deltaTime = writeDeltaTime(time);
-                numBytes += deltaTime.count();
+                numBytes += deltaTime.length();
                 data.append(deltaTime);
 
                 // write the events data
                 QByteArray eventData = event->save();
-                numBytes += eventData.count();
+                numBytes += eventData.length();
                 data.append(eventData);
 
                 // save this tick as last time
@@ -2199,7 +2199,7 @@ bool MidiFile::saveMidiEvents(QFile &f, QList<MidiEvent*>* events, bool selectMu
         // write the endEvent
         int time = last_event - currentTick;
         QByteArray deltaTime = writeDeltaTime(time);
-        numBytes += deltaTime.count();
+        numBytes += deltaTime.length();
         data.append(deltaTime);
         data.append(char(0xFF));
         data.append(char(0x2F));
@@ -2213,7 +2213,7 @@ bool MidiFile::saveMidiEvents(QFile &f, QList<MidiEvent*>* events, bool selectMu
     }
 
     // write data to the filestream
-    for (int i = 0; i < data.count(); i++) {
+    for (int i = 0; i < data.length(); i++) {
         (*stream) << (qint8)(data.at(i));
     }
 
@@ -2465,7 +2465,7 @@ bool MidiFile::save(QString path)
         data.append('r');
         data.append('k');
 
-        int trackLengthPos = data.count();
+        int trackLengthPos = data.length();
 
         data.append('\0');
         data.append('\0');
@@ -2485,12 +2485,12 @@ bool MidiFile::save(QString path)
                 // write the deltaTime before the event
                 int time = tick - currentTick;
                 QByteArray deltaTime = writeDeltaTime(time);
-                numBytes += deltaTime.count();
+                numBytes += deltaTime.length();
                 data.append(deltaTime);
 
                 // write the events data
                 QByteArray eventData = event->save();
-                numBytes += eventData.count();
+                numBytes += eventData.length();
                 data.append(eventData);
 
                 // save this tick as last time
@@ -2503,7 +2503,7 @@ bool MidiFile::save(QString path)
         // write the endEvent
         int time = endTick() - currentTick;
         QByteArray deltaTime = writeDeltaTime(time);
-        numBytes += deltaTime.count();
+        numBytes += deltaTime.length();
         data.append(deltaTime);
         data.append(char(0xFF));
         data.append(char(0x2F));
@@ -2517,7 +2517,7 @@ bool MidiFile::save(QString path)
     }
 
     // write data to the filestream
-    for (int i = 0; i < data.count(); i++) {
+    for (int i = 0; i < data.length(); i++) {
         (*stream) << (qint8)(data.at(i));
     }
 
@@ -2643,7 +2643,7 @@ bool MidiFile::saveMSEQ(QString path, bool onlych0)
         data.append('r');
         data.append('k');
 
-        int trackLengthPos = data.count();
+        int trackLengthPos = data.length();
 
         data.append('\0');
         data.append('\0');
@@ -2660,12 +2660,12 @@ bool MidiFile::saveMSEQ(QString path, bool onlych0)
             // write the deltaTime before the event
 
             QByteArray deltaTime = writeDeltaTime(0);
-            numBytes += deltaTime.count();
+            numBytes += deltaTime.length();
             data.append(deltaTime);
 
             // write the events data
 
-            numBytes += eventData.count();
+            numBytes += eventData.length();
             data.append(eventData);
         }
 
@@ -2709,12 +2709,12 @@ bool MidiFile::saveMSEQ(QString path, bool onlych0)
                 // write the deltaTime before the event
                 int time = tick - currentTick;
                 QByteArray deltaTime = writeDeltaTime(time);
-                numBytes += deltaTime.count();
+                numBytes += deltaTime.length();
                 data.append(deltaTime);
 
                 // write the events data
 
-                numBytes += eventData.count();
+                numBytes += eventData.length();
                 data.append(eventData);
 
                 // save this tick as last time
@@ -2727,7 +2727,7 @@ bool MidiFile::saveMSEQ(QString path, bool onlych0)
         // write the endEvent
         int time = endTick() - currentTick;
         QByteArray deltaTime = writeDeltaTime(time);
-        numBytes += deltaTime.count();
+        numBytes += deltaTime.length();
         data.append(deltaTime);
         data.append(char(0xFF));
         data.append(char(0x2F));
@@ -2741,7 +2741,7 @@ bool MidiFile::saveMSEQ(QString path, bool onlych0)
     }
 
     // write data to the filestream
-    for (int i = 0; i < data.count(); i++) {
+    for (int i = 0; i < data.length(); i++) {
         (*stream) << (qint8)(data.at(i));
     }
 
@@ -2952,8 +2952,8 @@ int MidiFile::tonalityAt(int tick)
 
 void MidiFile::meterAt(int tick, int* num, int* denum, TimeSignatureEvent **lastTimeSigEvent)
 {
-    QMap<int, MidiEvent*>* meterEvents = timeSignatureEvents();
-    QMap<int, MidiEvent*>::iterator it = meterEvents->begin();
+    QMultiMap<int, MidiEvent*>* meterEvents = timeSignatureEvents();
+    QMultiMap<int, MidiEvent*>::iterator it = meterEvents->begin();
     TimeSignatureEvent* event = 0;
     while (it != meterEvents->end()) {
         TimeSignatureEvent* timeSig = dynamic_cast<TimeSignatureEvent*>(it.value());
@@ -3055,8 +3055,8 @@ QList<int> MidiFile::quantization(int fractionSize)
 
 
 int MidiFile::startTickOfMeasure(int measure){
-    QMap<int, MidiEvent*> *timeSigs = timeSignatureEvents();
-    QMap<int, MidiEvent*>::iterator it = timeSigs->begin();
+    QMultiMap<int, MidiEvent*> *timeSigs = timeSignatureEvents();
+    QMultiMap<int, MidiEvent*>::iterator it = timeSigs->begin();
 
     // Find the time signature event the measure is in and its start measure
     int currentMeasure = 1;
@@ -3088,7 +3088,7 @@ void MidiFile::deleteMeasures(int from, int to){
 
     // Delete all events. For notes, only delete if starting within the given tick range.
     for (int ch = 0; ch < 19; ch++) {
-        QMap<int, MidiEvent*>::Iterator it = channel(ch)->eventMap()->begin();
+        QMultiMap<int, MidiEvent*>::Iterator it = channel(ch)->eventMap()->begin();
         QList<MidiEvent*> toRemove;
         while(it != channel(ch)->eventMap()->end()) {
             if (it.key() >= tickFrom && it.key() <= tickTo) {
@@ -3117,7 +3117,7 @@ void MidiFile::deleteMeasures(int from, int to){
     // duration.
     for (int ch = 0; ch < 19; ch++) {
         QList<MidiEvent*> toUpdate;
-        QMap<int, MidiEvent*>::Iterator it = channel(ch)->eventMap()->begin();
+        QMultiMap<int, MidiEvent*>::Iterator it = channel(ch)->eventMap()->begin();
         while(it != channel(ch)->eventMap()->end()) {
             if (it.key() > tickTo) {
                 toUpdate.append(it.value());
@@ -3171,7 +3171,7 @@ void MidiFile::insertMeasures(int after, int numMeasures){
     // Shift all ticks.
     for (int ch = 0; ch < 19; ch++) {
         QList<MidiEvent*> toUpdate;
-        QMap<int, MidiEvent*>::Iterator it = channel(ch)->eventMap()->begin();
+        QMultiMap<int, MidiEvent*>::Iterator it = channel(ch)->eventMap()->begin();
         while(it != channel(ch)->eventMap()->end()) {
             if (it.key() >= tick) {
                 toUpdate.append(it.value());

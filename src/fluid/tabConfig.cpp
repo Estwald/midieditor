@@ -50,10 +50,23 @@ void FluidDialog::tab_Config(QDialog */*FluidDialog*/) {
     sf2Box->setDuplicatesEnabled(true);
     int n, m;
 
+    QString fonsys; // default soundfont
+
+#ifdef __WINDOWS_MM__
+    if(QFile::exists("C:/WINDOWS/system32/drivers/gm.dls")) {
+        fonsys = "C:/WINDOWS/system32/drivers/gm.dls";
+    }
+#endif
+
     for(n = 0; n < 10; n++) {
         QString entry = QString("sf2_index")+QString().setNum(9-n);
 
         if (fluid_output->fluid_settings->value(entry).toString() != "") {
+
+            if(!fonsys.isEmpty() &&
+                fonsys == fluid_output->fluid_settings->value(entry).toString())
+                fonsys.clear();
+
             if(QFile(fluid_output->fluid_settings->value(entry).toString()).exists()) {
                 for(m = 0; m < n; m++) {
                     if(sf2Box->itemText(m) == fluid_output->fluid_settings->value(entry).toString()) {
@@ -63,6 +76,12 @@ void FluidDialog::tab_Config(QDialog */*FluidDialog*/) {
                 if(n == m)
                     sf2Box->addItem(fluid_output->fluid_settings->value(entry).toString());
             } else fluid_output->fluid_settings->setValue(entry, "");
+
+        } else {
+            if(!fonsys.isEmpty())
+                sf2Box->addItem(fonsys);
+            fonsys.clear();
+
         }
     }
 
@@ -198,7 +217,7 @@ void FluidDialog::tab_Config(QDialog */*FluidDialog*/) {
     OutFloat->setGeometry(QRect(624, 20, 70, 17));
     OutFloat->setText("Use Float");
     OutFloat->setChecked(fluid_output->fluid_settings->value("Out use float" , 0).toInt() ? true : false);
-
+    OutFloat->setChecked(true);
     connect(bufferSlider, QOverload<int>::of(&QSlider::valueChanged), [=](int size)
     {
         size = (size + 64) & ~127;
@@ -261,17 +280,43 @@ void FluidDialog::tab_Config(QDialog */*FluidDialog*/) {
 
     }
 
-
+/*
     dev_out = QAudioDeviceInfo::availableDevices(QAudio::AudioOutput);
     dev_out.append(QAudioDeviceInfo::defaultOutputDevice());
     dev_out.move(dev_out.count() - 1, 0);
+*/
+    dev_out = MAudio::MAudio_OutputDevices();
 
     int max_out= dev_out.count();
     for(int n=0; n < max_out; n++) {
-        OutputBox->addItem(dev_out.at(n).deviceName());
+
+        OutputBox->addItem(dev_out.at(n)/*.deviceName()*/);
+        if(fluid_output->current_sound &&
+            fluid_output->current_sound->device_name == dev_out.at(n))
+            OutputBox->setCurrentIndex(n);
     }
 
     if(max_out) {
+        int list_freq[4] = {44100, 48000, 88200, 96000};
+        int i = 0;
+
+        int ind = -1;
+        for(int n = 0; n < 4; n++) {
+
+            if(!MAudio::MAudio_SupportedSampleRate(dev_out.at(OutputBox->currentIndex()), list_freq[n]))
+                continue;
+            QString s;
+            s.setNum(list_freq[n], 10)+ " Hz";
+            OutputFreqBox->addItem(s, list_freq[n]);
+
+            if(list_freq[n] == fluid_output->_sample_rate) ind = i;
+
+            if(list_freq[n] == 44100 && ind < 0) ind = i;
+            i++;
+        }
+
+
+#if 0
         QList<int> freq = dev_out.at(OutputBox->currentIndex()).supportedSampleRates();
         int i = 0;
         int m= freq.count();
@@ -287,6 +332,7 @@ void FluidDialog::tab_Config(QDialog */*FluidDialog*/) {
             if(freq.at(n)==44100 && ind < 0) ind = i;
             i++;
         }
+#endif
 
         if(ind < 0) ind = 0;
         OutputFreqBox->setCurrentIndex(ind);
@@ -312,7 +358,7 @@ void FluidDialog::tab_Config(QDialog */*FluidDialog*/) {
 
     MP3ModeButton_2 = new QRadioButton(MP3Audio);
     MP3ModeButton_2->setObjectName(QString::fromUtf8("MP3ModeButton_2"));
-    MP3ModeButton_2->setGeometry(QRect(100, 60, 51, 17));
+    MP3ModeButton_2->setGeometry(QRect(100, 60, 61, 17));
     MP3ModeButton_2->setChecked(fluid_output->fluid_settings->value("mp3_mode").toBool()); //-
 
     MP3label_2 = new QLabel(MP3Audio);
@@ -331,19 +377,19 @@ void FluidDialog::tab_Config(QDialog */*FluidDialog*/) {
 
     MP3label_title = new QLabel(MP3Audio);
     MP3label_title->setObjectName(QString::fromUtf8("MP3label_title"));
-    MP3label_title->setGeometry(QRect(250, 10, 47, 13));
+    MP3label_title->setGeometry(QRect(250, 12, 47, 13));
 
     MP3label_artist = new QLabel(MP3Audio);
     MP3label_artist->setObjectName(QString::fromUtf8("MP3label_artist"));
-    MP3label_artist->setGeometry(QRect(250, 40, 47, 13));
+    MP3label_artist->setGeometry(QRect(250, 42, 47, 13));
 
     MP3label_album = new QLabel(MP3Audio);
     MP3label_album->setObjectName(QString::fromUtf8("MP3label_album"));
-    MP3label_album->setGeometry(QRect(250, 70, 47, 13));
+    MP3label_album->setGeometry(QRect(250, 72, 47, 13));
 
     MP3label_genre = new QLabel(MP3Audio);
     MP3label_genre->setObjectName(QString::fromUtf8("MP3label_genre"));
-    MP3label_genre->setGeometry(QRect(250, 100, 47, 13));
+    MP3label_genre->setGeometry(QRect(250, 102, 47, 13));
 
     MP3_lineEdit_title = new QLineEdit(MP3Audio);
     MP3_lineEdit_title->setObjectName(QString::fromUtf8("MP3_lineEdit_title"));
@@ -392,7 +438,7 @@ void FluidDialog::tab_Config(QDialog */*FluidDialog*/) {
 
     MP3checkBox_id3 = new QCheckBox(MP3Audio);
     MP3checkBox_id3->setObjectName(QString::fromUtf8("MP3checkBox_id3"));
-    MP3checkBox_id3->setGeometry(QRect(190, 10, 41, 17));
+    MP3checkBox_id3->setGeometry(QRect(190, 12, 41, 17));
     MP3checkBox_id3->setChecked(fluid_output->fluid_settings->value("mp3_id3").toBool());
 
     MP3Button_save = new QPushButton(MP3Audio);
@@ -522,7 +568,7 @@ void FluidDialog::update_status() {
     update();
 }
 
-void FluidDialog::setOutput(int index) {
+void FluidDialog::setOutput(int /*index*/) {
 
     if (MidiPlayer::isPlaying()) {
         QMessageBox::information(this, "Ehhh!", "You cannot change it playing a MIDI File...");
@@ -530,6 +576,29 @@ void FluidDialog::setOutput(int index) {
     }
 
     if(dev_out.count()) {
+
+        OutputFreqBox->clear();
+
+        int list_freq[4] = {44100, 48000, 88200, 96000};
+        int i = 0;
+
+        int ind = -1;
+        for(int n = 0; n < 4; n++) {
+
+            if(!MAudio::MAudio_SupportedSampleRate(dev_out.at(OutputBox->currentIndex()), list_freq[n]))
+                continue;
+            QString s;
+            s.setNum(list_freq[n], 10)+ " Hz";
+            OutputFreqBox->addItem(s, list_freq[n]);
+
+            if(list_freq[n] == fluid_output->_sample_rate) ind = i;
+
+            if(list_freq[n] == 44100 && ind < 0) ind = i;
+            i++;
+        }
+
+        ////////////////////////
+        /*
         QList<int> freq = dev_out.at(index).supportedSampleRates();
         int i = 0;
         int m= freq.count();
@@ -546,6 +615,7 @@ void FluidDialog::setOutput(int index) {
             if(freq.at(n)==44100 && ind < 0 ) ind = i;
             i++;
         }
+        */
 
         if(ind < 0) ind = 0;
         OutputFreqBox->setCurrentIndex(ind);
@@ -560,73 +630,56 @@ void FluidDialog::setOutputFreq(int) {
         QMessageBox::information(this, "Ehhh!", "You cannot change it playing a MIDI File...");
         return;
     }
-/*
-    if(0 && fluid_output->it_have_error == 2) {
-        QMessageBox::information(this, "Apuff!", "Fluid Synth engine is stopped\nbecause a critical error");
-        return;
-    }
-*/
+
     int freq = OutputFreqBox->currentData().toInt();
 
     fluid_output->stop_audio(true);
 
-    if(fluid_output->out_sound_io) fluid_output->out_sound_io->close();
-    fluid_output->out_sound_io = NULL;
-    if(fluid_output->out_sound) {
-        fluid_output->out_sound->stop();
-        fluid_output->out_sound->disconnect(this);
-        fluid_output->out_sound = NULL;
-        delete fluid_output->out_sound;
+    MAudioDev param;
+
+    param.device_name = dev_out.at(OutputBox->currentIndex());
+
+#ifndef IS_QT5
+    if(OutputBox->currentIndex() == 0)
+        param.device_name = QString("default");
+#endif
+
+    param.sample_rate = freq;
+    param.is_float = fluid_output->output_float ? true : false;
+
+    MAudioDev *dev = MAudio::MAudio_findDev(param);
+
+    if(!dev || (dev && dev->err)) {
+        QMessageBox::information(this, "Ehhh!", "Error testing device...");
+        return;
     }
-    fluid_output->out_sound = NULL;
 
-    QAudioFormat format;
-    format.setSampleRate(freq);
-    format.setChannelCount(2);
-    format.setSampleSize(32);
-    format.setCodec("audio/pcm");
-    format.setByteOrder(QAudioFormat::LittleEndian);
-    format.setSampleType(QAudioFormat::Float);
+    /////////////////////
+    // update from device
 
-    QAudioDeviceInfo info(dev_out.at(OutputBox->currentIndex()));
-
-    info.isFormatSupported(format);
-    if(!info.isFormatSupported(format) || !fluid_output->output_float) {
-        format.setSampleSize(16);
-        format.setSampleType(QAudioFormat::SignedInt);
+    if(fluid_output->current_sound)
+        delete fluid_output->current_sound;
+    fluid_output->current_sound = dev;
+    if(dev->is_float)
+        fluid_output->output_float = 1;
+    else
         fluid_output->output_float = 0;
-    } else fluid_output->output_float = 1;
 
-    fluid_output->out_sound= new QAudioOutput(dev_out.at(OutputBox->currentIndex()), format);
-    if(fluid_output->out_sound) {
+    qWarning("is output_float %i", fluid_output->output_float);
 
-        fluid_output->out_sound_io = fluid_output->out_sound->start();
-        if(fluid_output->out_sound_io) {
+    fluid_output->_sample_rate = dev->sample_rate;
+    //fluid_output->device_name = dev->device_name;
 
-            fluid_output->_sample_rate = format.sampleRate();
-
-        }
-
-    }
+    /////////////////////
 
     fluid_output->new_sound_thread(fluid_output->_sample_rate);
 
     fluid_output->stop_audio(false);
 
-    if(!fluid_output->out_sound) {
 
-        QMessageBox::information(this, "FATAL ERROR", "QAudioOutput() cannot be created");
-        return;
-    }
-
-    if(!fluid_output->out_sound_io) {
-
-        QMessageBox::information(this, "FATAL ERROR", "QAudioOutput() cannot starts");
-        return;
-    }
 
     if(fluid_output->fluid_settings) {
-        fluid_output->fluid_settings->setValue("Audio Device", dev_out.at(OutputBox->currentIndex()).deviceName());
+        fluid_output->fluid_settings->setValue("Audio Device", dev_out.at(OutputBox->currentIndex())/*.deviceName()*/);
         fluid_output->fluid_settings->setValue("Audio Freq", fluid_output->_sample_rate);
     }
 
@@ -711,13 +764,6 @@ void FluidDialog::load_SF2(QString path) {
         return;
     }
 
-    /*
-    if(fluid_output->it_have_error == 2) {
-        QMessageBox::information(this, "Apuff!", "Fluid Synth engine is stopped\nbecause a critical error");
-        return;
-    }
-    */
-
     if(path =="") {  
 
         sf2Dir = QDir::rootPath();
@@ -729,7 +775,7 @@ void FluidDialog::load_SF2(QString path) {
         }
 
         QString newPath = QFileDialog::getOpenFileName(this, "Open SF2/SF3 file",
-            sf2Dir, "SF2/SF3 Files(*.sf2 *.sf3)");
+                                                       sf2Dir, "SF2/SF3/DLS/ Files(*.sf2 *.sf3 *.dls *.gig)");
         if(newPath.isEmpty()) {
             return; // canceled
         }
@@ -740,7 +786,7 @@ void FluidDialog::load_SF2(QString path) {
             sf2Box->removeItem(10);
         }
         for(int n = 0; n < sf2Box->count(); n++) {
-            QString entry=QString("sf2_index")+QString().setNum(n);
+            QString entry = QString("sf2_index")+QString().setNum(n);
             fluid_output->fluid_settings->setValue(entry, sf2Box->itemText(n).toUtf8());
         }
 
@@ -749,7 +795,7 @@ void FluidDialog::load_SF2(QString path) {
     if(!QFile::exists(sf2Dir.toUtf8())) { // removing is not found
 
         for(int n = 0; n < sf2Box->count(); n++) {
-            QString entry=QString("sf2_index")+QString().setNum(n);
+            QString entry = QString("sf2_index")+QString().setNum(n);
 
             if(sf2Dir.toUtf8() == sf2Box->itemText(n))
                     sf2Box->removeItem(n);
@@ -758,12 +804,20 @@ void FluidDialog::load_SF2(QString path) {
             }
         }
 
-        QMessageBox::information(NULL, "SF2 file not found", sf2Dir.toUtf8());
-        return;
+#ifdef __WINDOWS_MM__
+        if(!QFile::exists("C:/WINDOWS/system32/drivers/gm.dls")) {
+
+            QMessageBox::information(NULL, "SF2 file not found", sf2Dir.toUtf8());
+            return;
+        } else
+            sf2Dir = "C:/WINDOWS/system32/drivers/gm.dls";
+#endif
+
     }
 
     sf2Box->setCurrentText(sf2Dir.toUtf8());
     fluid_output->fluid_settings->setValue("sf2_path", sf2Dir.toUtf8());
+
 
     if(fluid_output->sf2_name) delete fluid_output->sf2_name;
     fluid_output->sf2_name = new QString(sf2Dir);

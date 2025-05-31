@@ -102,7 +102,7 @@ MidiEvent* MidiEvent::loadMidiEvent(QDataStream* content, bool* ok,
             tempByte = secondByte;
         }
         int note = tempByte;
-        if (note < 0 || note > 127) {
+        if ((note < 0) || (note > 127)) {
             *ok = false;
             return 0;
         }
@@ -127,7 +127,7 @@ MidiEvent* MidiEvent::loadMidiEvent(QDataStream* content, bool* ok,
             tempByte = secondByte;
         }
         int note = tempByte;
-        if (note < 0 || note > 127) {
+        if ((note < 0) || (note > 127)) {
             *ok = false;
             return 0;
         }
@@ -164,7 +164,7 @@ MidiEvent* MidiEvent::loadMidiEvent(QDataStream* content, bool* ok,
             tempByte = secondByte;
         }
         int note = tempByte;
-        if (note < 0 || note > 127) {
+        if ((note < 0) || (note > 127)) {
             *ok = false;
             return 0;
         }

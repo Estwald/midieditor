@@ -51,7 +51,21 @@ AboutDialog::AboutDialog(QWidget* parent)
     layout->addWidget(title, 0, 1, 1, 2);
     title->setStyleSheet("color: black");
 
-    QLabel* version = new QLabel("Version: " + QApplication::applicationVersion() + " (" + QApplication::instance()->property("arch").toString() + "-Bit, " + QApplication::instance()->property("date_published").toString() + ")", this);
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
+
+    QString compilerVersion = QStringLiteral("GCC: ")
+                         + QStringLiteral(STR(__GNUC__)) + "."
+                         + QStringLiteral(STR(__GNUC_MINOR__)) + "."
+                         + QStringLiteral(STR(__GNUC_PATCHLEVEL__));
+    QString qt_ver = QStringLiteral("Qt: ")
+                            + QStringLiteral(STR(QT_VERSION_MAJOR)) + "."
+                            + QStringLiteral(STR(QT_VERSION_MINOR)) + "."
+                            + QStringLiteral(STR(QT_VERSION_PATCH));
+
+    QLabel* version = new QLabel("Version: " + QApplication::applicationVersion() +
+                      " (" + QApplication::instance()->property("arch").toString() + "-Bit, " + QApplication::instance()->property("date_published").toString() + ") " +
+                      compilerVersion + " / " + qt_ver, this);
     layout->addWidget(version, 1, 1, 1, 2);
     version->setStyleSheet("color: black");
 

@@ -86,6 +86,13 @@ static VstEvents2 *vstEvents[PRE_CHAN + 1];
 
 VSTlogo *VSTlogo_control= NULL;
 
+bool VST_proc::leslieON[SYNTH_CHANS];
+LeslieSpeaker VST_proc::leslie[SYNTH_CHANS];
+
+static LeslieSpeaker aleslie = {/*freq*/1000.0f, /*Rb*/2.0f, /*Db*/0.5f, /*Rt*/6.0f, /*Dt*/0.3f,
+                                      0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
+
+
 VSTDialog::VSTDialog(QWidget* parent, int chan) : QDialog(parent, Qt::WindowSystemMenuHint | Qt::WindowTitleHint | Qt::WindowCloseButtonHint) {
 
     QDialog *Dialog = this;
@@ -254,6 +261,7 @@ VSTDialog::VSTDialog(QWidget* parent, int chan) : QDialog(parent, Qt::WindowSyst
     QMetaObject::connectSlotsByName(Dialog);
 
     time_update= new QTimer(this);
+
     if(!time_update)
         ERROR_CRITICAL("VSTDialog: time_update fail\n");
     time_update->setSingleShot(false);
@@ -468,7 +476,7 @@ void VSTDialog::ChangePreset(int sel) {
                     clen = 0;
                     decode_sys_format(qd, (void *) &clen);
 
-                    qWarning("sys VST pre %i len %i %i", pre, c.size(), clen);
+                    qWarning("sys VST pre %i len %i %i", (int) pre, (int) c.size(), (int) clen);
 
                     decode_sys_format(qd, (void *) &dat);
                     if(dat != VST_preset_data[chan]->uniqueID) continue;
@@ -503,7 +511,7 @@ void VSTDialog::ChangePreset(int sel) {
 
     }
 
-    if(last < 0 || !data2 || clen == 0) {
+    if((last < 0) || !data2 || clen == 0) {
         /*
         // not found, default factory...
         clen = VST_preset_data[chan]->factory.length();
@@ -599,7 +607,7 @@ void VSTDialog::ChangeFastPresetI(int sel) {
     if(_dis_change || !SpinBoxPreset->underMouse()) return;
     VST_preset_data[channel]->send_preset = -1;
 
-    if(sel < 0 || sel > 7) {
+    if((sel < 0) || (sel > 7)) {
         SpinBoxPreset->setStyleSheet(QString::fromUtf8("background-color: lightgray;"));
         return;
     } else {
@@ -636,7 +644,7 @@ void VSTDialog::ChangeFastPresetI2(int sel) {
         return ;
     }
 
-    if(sel < 0 || sel > 7) {
+    if((sel < 0) || (sel > 7)) {
         if(VST_preset_data[channel]->external)
             VST_proc::VST_external_send_message(channel, EXTERNAL_UPDATE_PRESET_BKCOLOR, -1);
         else
@@ -672,7 +680,7 @@ void VSTDialog::ChangeFastPresetI2(int sel) {
 
 void VSTDialog::ChangeFastPreset(int sel) {
 
-    if(sel < 0 || sel > 7) return;
+    if((sel < 0) || (sel > 7)) return;
 
     if(in_use) {
         return;
@@ -998,7 +1006,7 @@ skip0:
             encode_sys_format(qd, (void *) &cdata[n]);
         }
 
-        delete cdata;
+        delete[] cdata;
         cdata = NULL;
 
         SysExEvent *sys_event = new SysExEvent(16, b, file->track(0));
@@ -1094,7 +1102,7 @@ void VSTDialog::Reset() {
         int cur_pre = (SpinBoxPreset) ? SpinBoxPreset->value() : -1;
         if(cur_pre > 7) cur_pre = -1;
 
-        VST_proc::VST_external_send_message(chan, EXTERNAL_UPDATE_PRESET_BKCOLOR, (cur_pre == -1 || VST_preset_data[chan]->preset[cur_pre].count() == 0) ? 0 : 1);
+        VST_proc::VST_external_send_message(chan, EXTERNAL_UPDATE_PRESET_BKCOLOR, (cur_pre == -1 || VST_preset_data[chan]->preset[cur_pre].length() == 0) ? 0 : 1);
 
         _block_timer2 = 0;
 
@@ -2460,7 +2468,12 @@ int VST_proc::VST_load(int chan, const QString pathModule) {
         VST_temp->needIdle = false;
         VST_temp->needUpdate = false;
         VST_temp->vstPowerOn = false;
+
+#ifdef IS_QT5
         VST_temp->mux = new QMutex(QMutex::NonRecursive);
+#else
+        VST_temp->mux = new QMutex();
+#endif
 
         VST_preset_data[chan] = VST_temp;
 
@@ -2702,8 +2715,187 @@ typedef struct {
 } vst_message;
 
 #include <QProcess>
+#include <math.h>
 
 extern QProcess *process;
+
+void VST_proc::VST_LeslieEffect(float *left, float *right, float samplerate, int nsamples, LeslieSpeaker *Leslie) {
+
+#if defined(__SSE2__)
+    if(using_SSE2) {
+        VST_LeslieEffect_SSE2(left, right, samplerate, nsamples, Leslie);
+        return;
+    }
+#endif
+
+    const float PIX2 = 6.28318530f;
+    float incB = PIX2 * Leslie->rotationSpeedBass / samplerate;
+    float incT = PIX2 * Leslie->rotationSpeedTreble / samplerate;
+
+    float RC2 = (PIX2 * Leslie->frequency);
+    float RC = 1.0f / RC2;
+    float alphaB = 1.0f / (1.0f + (samplerate * RC));
+    float alphaT = samplerate / (samplerate + RC2);
+
+    for (int i = 0; i < nsamples; i++) {
+        float modB = sinf(Leslie->phaseBass) * Leslie->depthBass;
+        float modT = sinf(Leslie->phaseTreble) * Leslie->depthTreble;
+
+        float leftB = 1.0f + modB;
+        float leftT = 1.0f + modT;
+        float rightB = 1.0f - modB;
+        float rightT = 1.0f - modT;
+
+
+        float l = left[i];
+        float r = right[i];
+
+        // BASS filter
+        Leslie->lastSampleLB = alphaB * l + (1.0f - alphaB) * Leslie->lastSampleLB;
+        Leslie->lastSampleRB = alphaB * r + (1.0f - alphaB) * Leslie->lastSampleRB;
+
+        // TREBLE filter
+        Leslie->lastSampleLT = alphaT * (Leslie->lastSampleLT + l - Leslie->lastInputLT);
+        Leslie->lastInputLT = l;
+        Leslie->lastSampleRT = alphaT * (Leslie->lastSampleRT + r - Leslie->lastInputRT);
+        Leslie->lastInputRT = r;
+
+        l = Leslie->lastSampleLB * leftB + Leslie->lastSampleLT * leftT;
+        r = Leslie->lastSampleRB * rightB + Leslie->lastSampleRT * rightT;
+
+
+        if(l < -1.0f) l = -1.0f;
+        else if(l > 1.0f) l = 1.0f;
+        left[i] = l;
+
+        if(r < -1.0f) r = -1.0f;
+        else if(r > 1.0f) r = 1.0f;
+        right[i] = r;
+
+        Leslie->phaseBass += incB;
+
+        if (Leslie->phaseBass > PIX2) {
+            Leslie->phaseBass -= PIX2;
+        }
+
+        Leslie->phaseTreble += incT;
+
+        if (Leslie->phaseTreble > PIX2) {
+            Leslie->phaseTreble -= PIX2;
+        }
+    }
+}
+
+#if defined(__SSE2__)
+#include <cmath>
+#include <emmintrin.h> // SSE2
+
+void VST_proc::VST_LeslieEffect_SSE2(float *left, float *right, float samplerate, int nsamples, LeslieSpeaker *Leslie) {
+    const float PIX2 = 6.28318530f;
+    float incB = PIX2 * Leslie->rotationSpeedBass / samplerate;
+    float incT = PIX2 * Leslie->rotationSpeedTreble / samplerate;
+
+    float RC2 = (PIX2 * Leslie->frequency);
+    float RC = 1.0f / RC2;
+    float alphaB = 1.0f / (1.0f + (samplerate * RC));
+    float alphaT = samplerate / (samplerate + RC2);
+
+    __m128 vAlphaB = _mm_set1_ps(alphaB);
+    __m128 vOneMinusAlphaB = _mm_set1_ps(1.0f - alphaB);
+
+    int i = 0;
+    for (; i <= nsamples - 4; i += 4) {
+        float modB = sinf(Leslie->phaseBass) * Leslie->depthBass;
+        float modT = sinf(Leslie->phaseTreble) * Leslie->depthTreble;
+
+        __m128 l = _mm_loadu_ps(&left[i]);
+        __m128 r = _mm_loadu_ps(&right[i]);
+
+        // BASS filters
+        __m128 lastLB = _mm_set1_ps(Leslie->lastSampleLB);
+        __m128 lastRB = _mm_set1_ps(Leslie->lastSampleRB);
+        __m128 filteredLB = _mm_add_ps(_mm_mul_ps(vAlphaB, l), _mm_mul_ps(vOneMinusAlphaB, lastLB));
+        __m128 filteredRB = _mm_add_ps(_mm_mul_ps(vAlphaB, r), _mm_mul_ps(vOneMinusAlphaB, lastRB));
+
+        Leslie->lastSampleLB = _mm_cvtss_f32(_mm_shuffle_ps(filteredLB, filteredLB, _MM_SHUFFLE(0, 0, 0, 3)));
+        Leslie->lastSampleRB = _mm_cvtss_f32(_mm_shuffle_ps(filteredRB, filteredRB, _MM_SHUFFLE(0, 0, 0, 3)));
+
+        // TREBLE filters (scalar, por dependencia de estado anterior)
+
+        for (int j = 0; j < 4; ++j) {
+            float lj = left[i + j];
+            float rj = right[i + j];
+            Leslie->lastSampleLT = alphaT * (Leslie->lastSampleLT + lj - Leslie->lastInputLT);
+            Leslie->lastInputLT = lj;
+            Leslie->lastSampleRT = alphaT * (Leslie->lastSampleRT + rj - Leslie->lastInputRT);
+            Leslie->lastInputRT = rj;
+
+            float ljOut = Leslie->lastSampleLB * (1.0f + modB) + Leslie->lastSampleLT * (1.0f + modT);
+            float rjOut = Leslie->lastSampleRB * (1.0f - modB) + Leslie->lastSampleRT * (1.0f - modT);
+
+            // Clamp
+            if (ljOut < -1.0f) ljOut = -1.0f;
+            else if (ljOut > 1.0f) ljOut = 1.0f;
+
+            if (rjOut < -1.0f) rjOut = -1.0f;
+            else if (rjOut > 1.0f) rjOut = 1.0f;
+
+            left[i + j] = ljOut;
+            right[i + j] = rjOut;
+        }
+
+        Leslie->phaseBass += 4 * incB;
+        if (Leslie->phaseBass > PIX2)
+            Leslie->phaseBass -= PIX2;
+
+        Leslie->phaseTreble += 4 * incT;
+        if (Leslie->phaseTreble > PIX2)
+            Leslie->phaseTreble -= PIX2;
+    }
+
+    // Resto (no aligned)
+    for (; i < nsamples; ++i) {
+        float modB = sinf(Leslie->phaseBass) * Leslie->depthBass;
+        float modT = sinf(Leslie->phaseTreble) * Leslie->depthTreble;
+
+        float leftB = 1.0f + modB;
+        float leftT = 1.0f + modT;
+        float rightB = 1.0f - modB;
+        float rightT = 1.0f - modT;
+
+        float l = left[i];
+        float r = right[i];
+
+        Leslie->lastSampleLB = alphaB * l + (1.0f - alphaB) * Leslie->lastSampleLB;
+        Leslie->lastSampleRB = alphaB * r + (1.0f - alphaB) * Leslie->lastSampleRB;
+
+        Leslie->lastSampleLT = alphaT * (Leslie->lastSampleLT + l - Leslie->lastInputLT);
+        Leslie->lastInputLT = l;
+        Leslie->lastSampleRT = alphaT * (Leslie->lastSampleRT + r - Leslie->lastInputRT);
+        Leslie->lastInputRT = r;
+
+        l = Leslie->lastSampleLB * leftB + Leslie->lastSampleLT * leftT;
+        r = Leslie->lastSampleRB * rightB + Leslie->lastSampleRT * rightT;
+
+        if (l < -1.0f) l = -1.0f;
+        else if (l > 1.0f) l = 1.0f;
+        left[i] = l;
+
+        if (r < -1.0f) r = -1.0f;
+        else if (r > 1.0f) r = 1.0f;
+        right[i] = r;
+
+        Leslie->phaseBass += incB;
+        if (Leslie->phaseBass > PIX2)
+            Leslie->phaseBass -= PIX2;
+
+        Leslie->phaseTreble += incT;
+        if (Leslie->phaseTreble > PIX2)
+            Leslie->phaseTreble -= PIX2;
+    }
+}
+
+#endif
 
 int VST_proc::VST_mix(float**in, int nchans, int samplerate, int nsamples, int mode) {
 
@@ -2750,6 +2942,7 @@ int VST_proc::VST_mix(float**in, int nchans, int samplerate, int nsamples, int m
             return 0;
         }
 
+
         if(out_vst) {
             if(!out_vst[OUT_CH(chan)]) continue;
         } else {
@@ -2757,13 +2950,15 @@ int VST_proc::VST_mix(float**in, int nchans, int samplerate, int nsamples, int m
             return -1;
         }
 
+
         if(VST_ON(chan) && VST_preset_data[chan]->external) {
+
             continue;
         }
 
-        if(vst_mix_disable) {
+        if(vst_mix_disable) {  
             _block_timer = 0;
-            return 0;
+            return 0;  
         }
 
         if(VST_ON(chan) && VST_preset_data[chan]->vstEffect && VST_preset_data[chan]->vstPowerOn) {
@@ -2840,6 +3035,7 @@ int VST_proc::VST_mix(float**in, int nchans, int samplerate, int nsamples, int m
             if((chan & 31) < 16 && VST_proc::VST_isMIDI(chan) && fluid_output->synth_chanvolume[chan] <= 127) {
                 float vol = ((float) (fluid_output->synth_chanvolume[chan] & 127)) / 127.0f;
                 vol *= ((float ) VST_MIDI_vol[chan])/127.0f;
+                /*
                 float *f1 = in[OUT_CH(chan) * 2];
                 float *o1 = out_vst[OUT_CH(chan) * 2];
                 float *f2 = in[OUT_CH(chan) * 2 + 1];
@@ -2848,6 +3044,10 @@ int VST_proc::VST_mix(float**in, int nchans, int samplerate, int nsamples, int m
                     f1[n] = o1[n] * vol;
                     f2[n] = o2[n] * vol;
                 }
+                */
+
+                set_fbuff_volume(vol, nsamples, in[OUT_CH(chan) * 2], in[OUT_CH(chan) * 2 + 1],
+                                 out_vst[OUT_CH(chan) * 2], out_vst[OUT_CH(chan) * 2 + 1]);
             } else {
 
                 memcpy(in[OUT_CH(chan) * 2], out_vst[OUT_CH(chan) * 2], nsamples * sizeof(float));
@@ -2855,6 +3055,7 @@ int VST_proc::VST_mix(float**in, int nchans, int samplerate, int nsamples, int m
             }
 
         }
+
     }
 
     _block_timer = 0;
@@ -3202,7 +3403,7 @@ int VST_proc::VST_LoadfromMIDIfile() {
                                                 continue;
                                             }
 
-                                            qWarning("sys VST pre %i len %i %i", pre, c.size(), clen);
+                                            qWarning("sys VST pre %i len %i %i", (int) pre, (int) c.size(), (int) clen);
 
                                             decode_sys_format(qd, (void *) &dat);
                                             if(dat != VST_preset_data[chan]->uniqueID) continue;
@@ -3246,7 +3447,7 @@ int VST_proc::VST_LoadfromMIDIfile() {
 
                             }
 
-                            if(last < 0 || !data2) { // not found, default factory...
+                            if((last < 0) || !data2) { // not found, default factory...
                                 if(pre == VST_preset_data[chan]->curr_preset) {
                                     clen = VST_preset_data[chan]->factory.length();
                                     if(data2) free(data2);
@@ -3785,7 +3986,7 @@ int VST_proc::VST_UpdatefromMIDIfile() {
                                             clen = 0;
                                             decode_sys_format(qd, (void *) &clen);
 
-                                            qWarning("sys VST pre %i len %i %i", pre, c.size(), clen);
+                                            qWarning("sys VST pre %i len %i %i", (int) pre, (int) c.size(), (int) clen);
 
                                             decode_sys_format(qd, (void *) &dat);
                                             if(dat != VST_preset_data[chan]->uniqueID) continue;
@@ -3827,7 +4028,7 @@ int VST_proc::VST_UpdatefromMIDIfile() {
 
                             }
 
-                            if(last < 0 || !data2) { // not found, default factory...
+                            if((last < 0) || !data2) { // not found, default factory...
 
                                 VST_preset_data[chan]->preset[pre].clear();
 
@@ -4260,6 +4461,14 @@ skip:
 
 void VST_proc::VST_setParent(QWidget *parent) {
     _parentS = parent;
+}
+
+void VST_proc::VST_LeslieReset() {
+    for(int n = 0; n < SYNTH_CHANS; n++) {
+        leslieON[n] = false;
+        leslie[n] = aleslie;
+
+    }
 }
 
 VST_proc::VST_proc() {
@@ -5186,8 +5395,11 @@ int VST_proc::VST_external_load(int chan, const QString pathModule) {
             VST_preset_data[chan]->filename = QString::fromUtf8((char *) &dat[10], dat[9]);
 
             //qDebug("filename from ext: %s",(char *) &dat[10]);
-
+#ifdef IS_QT5
             VST_preset_data[chan]->mux = new QMutex(QMutex::NonRecursive);
+#else
+            VST_preset_data[chan]->mux = new QMutex();
+#endif
             VST_preset_data[chan]->on = true;
 
             qDebug("VST_external_load() ret: %i - winid subwin: %i winid win: %i", ret, dat[2], dat[3]);
@@ -5274,9 +5486,17 @@ VSTlogo::VSTlogo(QWidget* parent, QString text) : QDialog(parent, Qt::FramelessW
     VSTlabel->setObjectName(QString::fromUtf8("VSTlabel"));
     VSTlabel->setGeometry(QRect(132, 15, 250, 156));
     QFont font;
+
+#ifdef IS_QT5
     font.setPointSize(72);
+    font.setWeight((QFont::Weight) 75);
+#else
+    font.setFamily("Arial Black");
+    font.setPointSize(90);
+    font.setWeight((QFont::Weight) 90);
+#endif
     font.setBold(true);
-    font.setWeight(75);
+
     VSTlabel->setFont(font);
     VSTlabel->setAlignment(Qt::AlignCenter);
     _counterR = 0x40;
@@ -5301,6 +5521,7 @@ VSTlogo::VSTlogo(QWidget* parent, QString text) : QDialog(parent, Qt::FramelessW
 
 
     time_update= new QTimer(this);
+
     time_update->setSingleShot(false);
 
     connect(time_update, SIGNAL(timeout()), this, SLOT(timer_update()), Qt::DirectConnection);
@@ -5488,7 +5709,7 @@ VSTExportDatas::VSTExportDatas(QWidget* parent, int chan) : QDialog(parent, Qt::
     for(int n = 0; n < 8; n++) {
         checkBoxPress[n] = new QCheckBox(groupBoxPresets);
 
-        if(_presets[n].count() == 0)
+        if(_presets[n].length() == 0)
             checkBoxPress[n]->setEnabled(false);
         else
             checkBoxPress[n]->setChecked(true);
@@ -5517,7 +5738,7 @@ VSTExportDatas::VSTExportDatas(QWidget* parent, int chan) : QDialog(parent, Qt::
     QFont font;
     font.setPointSize(10);
     font.setBold(true);
-    font.setWeight(75);
+    font.setWeight((QFont::Weight) 75);
     spinBoxChan->setFont(font);
     spinBoxChan->setAlignment(Qt::AlignCenter);
     spinBoxChan->setMinimum(0);
@@ -5566,7 +5787,7 @@ void VSTExportDatas::ExportVST() {
     int chan = channel;
     int chan2 = channel2;
 
-    if(_header.count() == 0) return;
+    if(_header.length() == 0) return;
 
     if(VST_ON(chan) && (VST_preset_data[chan]->type & 1) && (plugin & 1)) {
 
@@ -5714,7 +5935,7 @@ void VSTExportDatas::ExportVST() {
 
                     QByteArray c;
 
-                    if(((plugin & 128) || checkBoxPress[pre]->isChecked() ) && _presets[pre].count()) {
+                    if(((plugin & 128) || checkBoxPress[pre]->isChecked() ) && _presets[pre].length()) {
 
                         c = _presets[pre];
                         c[0] = chan;
@@ -5790,7 +6011,7 @@ void VSTExportDatas::ExportVST() {
                         }
 
 
-                        if(last < 0 || !data2) { // not found, default factory...
+                        if((last < 0) || !data2) { // not found, default factory...
 
                             VST_preset_data[chan]->preset[pre].clear();
 
@@ -5948,7 +6169,7 @@ void VSTExportDatas::ExportVSTfile() {
     QString path = appdir+"/" + VST_preset_data[channel]->filename;
 
     if(path.endsWith(".dll")) {
-        path = path.left(path.count() - 4);
+        path = path.left(path.length() - 4);
         path += ".vst_exp";
     } else
         path += ".vst_exp";
@@ -5975,7 +6196,7 @@ void VSTExportDatas::ExportVSTfile() {
     if(VST_preset_data[channel]->external)
         header[6] = '2';
 
-    int size = _header.count();
+    int size = _header.length();
     int len = size;
 
     for(int n = 0; n < 8; n++) {
@@ -5983,7 +6204,7 @@ void VSTExportDatas::ExportVSTfile() {
     }
 
     for(int n = 0; n < 8; n++) {
-        size+= _presets[n].count();
+        size+= _presets[n].length();
     }
 
 
@@ -6008,7 +6229,7 @@ void VSTExportDatas::ExportVSTfile() {
     }
 
     for(int n = 0; n < 8; n++) {
-        len= _presets[n].count();
+        len= _presets[n].length();
         if(f->write((const char *) &len, 4) < 0) {
             QMessageBox::information(this, "Error Writting", savePath);
             goto error;
@@ -6108,7 +6329,7 @@ void VSTExportDatas::ImportVSTfile() {
 
     _header = f->read(len);
 
-    if(_header.count() != len) {
+    if(_header.length() != len) {
         QMessageBox::information(this, "Error Reading", loadPath);
         goto error;
     }
@@ -6127,7 +6348,7 @@ void VSTExportDatas::ImportVSTfile() {
         }
 
         _presets[n] = f->read(len);
-        if(len != _presets[n].count()) {
+        if(len != _presets[n].length()) {
             QMessageBox::information(this, "Error Reading", loadPath);
             goto error;
         }

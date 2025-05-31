@@ -57,6 +57,7 @@
 
 #include "../protocol/Protocol.h"
 #include "../tool/NewNoteTool.h"
+#include "GuiTools.h"
 
 typedef struct  {
     int note;
@@ -120,7 +121,7 @@ class velocityDialog : public QDialog {
     Q_OBJECT
 public:
     QDialog *Velocity;
-    QSlider *velocitySlider;
+    QSliderE *velocitySlider;
 
     velocityDialog(QWidget * parent);
 
@@ -222,7 +223,7 @@ public:
     QSpinBox *transBox;
     QLabel *translabel;
     QLabel *recordlabel;
-    QSlider *volumeSlider;
+    QSliderE *volumeSlider;
     QLabel *vollabel;
 
     // rhythm
@@ -382,7 +383,7 @@ public:
     QSpinBox *transBox;
     QLabel *translabel;
     QLabel *recordlabel;
-    QSlider *volumeSlider;
+    QSliderE *volumeSlider;
     QLabel *vollabel;
 
 

@@ -108,5 +108,12 @@
         <file>run_environment/graphics/custom/pedal_on.png</file>
         <file>run_environment/graphics/tool/paste_ext.png</file>
         <file>run_environment/graphics/tool/select_multitrack.png</file>
+        <file>run_environment/graphics/custom/dial1.png</file>
+        <file>run_environment/graphics/custom/dial2.png</file>
+        <file>run_environment/graphics/custom/dial3.png</file>
+        <file>run_environment/graphics/custom/slider1.png</file>
+        <file>run_environment/graphics/custom/checked.png</file>
+        <file>run_environment/graphics/custom/unchecked.png</file>
+        <file>run_environment/graphics/channelwidget/decouple.png</file>
     </qresource>
 </RCC>

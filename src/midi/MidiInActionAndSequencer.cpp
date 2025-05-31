@@ -20,6 +20,10 @@ InputActionListWidget::InputActionListWidget(QWidget* parent, MidiInControl * Mi
     setStyleSheet("QListWidget {background-color: #e0e0c0;}\n"
                   "QListWidget::item QGroupBox {font: bold; border-bottom: 2px solid blue;\n"
                   "border: 2px solid black; border-radius: 7px; margin-top: 1ex;}\n"
+                  "QGroupBox::indicator:unchecked {image: url(:/run_environment/graphics/custom/unchecked.png);}\n"
+                  "QGroupBox::indicator:checked {image: url(:/run_environment/graphics/custom/checked.png);}\n"
+                  "QGroupBox QCheckBox::indicator:unchecked {image: url(:/run_environment/graphics/custom/unchecked.png);}\n"
+                  "QGroupBox QCheckBox::indicator:checked {image: url(:/run_environment/graphics/custom/checked.png);}\n"
                   "QGroupBox::title {subcontrol-origin: margin; left: 12px;\n"
                   "subcontrol-position: top left; padding: 0 2px; }");
 
@@ -310,7 +314,7 @@ InputActionItem::InputActionItem(InputActionListWidget* parent, int index, int n
     minlabel->setAlignment(Qt::AlignCenter);
     minlabel->setText("Min / Off");
 
-    mindial = new QDialE(groupActionBox);
+    mindial = new QDialE(groupActionBox, QDIALE_GRAY_NOTCH_BLACKDOT);
     mindial->setObjectName(QString::fromUtf8("mindial"));
     mindial->setGeometry(QRect(787 - 180, 19, 61, 64));
     mindial->setMinimum(0);
@@ -331,7 +335,7 @@ InputActionItem::InputActionItem(InputActionListWidget* parent, int index, int n
     maxlabel->setAlignment(Qt::AlignCenter);
     maxlabel->setText("Max / On");
 
-    maxdial = new QDialE(groupActionBox);
+    maxdial = new QDialE(groupActionBox, QDIALE_GRAY_NOTCH_BLACKDOT);
     maxdial->setObjectName(QString::fromUtf8("maxdial"));
     maxdial->setGeometry(QRect(859 - 180, 19, 61, 64));
     maxdial->setMaximum(127);
@@ -354,7 +358,7 @@ InputActionItem::InputActionItem(InputActionListWidget* parent, int index, int n
     minlabelBPM->setAlignment(Qt::AlignCenter);
     minlabelBPM->setText("BPM Min");
 
-    mindialBPM = new QDialE(groupActionBox);
+    mindialBPM = new QDialE(groupActionBox, QDIALE_GRAY_NOTCH_BLACKDOT);
     mindialBPM->setObjectName(QString::fromUtf8("mindialBPM"));
     mindialBPM->setGeometry(QRect(787 - 180, 19, 61, 64));
     mindialBPM->setMinimum(5);
@@ -376,7 +380,7 @@ InputActionItem::InputActionItem(InputActionListWidget* parent, int index, int n
     maxlabelBPM->setText("BPM Max");
     TOOLTIP(maxlabelBPM, "Beats Per Minute (BPM) used in the sequencer when the action starts (On sequencer value).");
 
-    maxdialBPM = new QDialE(groupActionBox);
+    maxdialBPM = new QDialE(groupActionBox, QDIALE_GRAY_NOTCH_BLACKDOT);
     maxdialBPM->setObjectName(QString::fromUtf8("maxdial"));
     maxdialBPM->setGeometry(QRect(859 - 180, 19, 61, 64));
     maxdialBPM->setMinimum(5);
@@ -399,7 +403,7 @@ InputActionItem::InputActionItem(InputActionListWidget* parent, int index, int n
     lev0label->setAlignment(Qt::AlignCenter);
     lev0label->setText("Level [3]");
 
-    lev0dial = new QDialE(groupActionBox);
+    lev0dial = new QDialE(groupActionBox, QDIALE_GRAY_NOTCH_BLACKDOT);
     lev0dial->setObjectName(QString::fromUtf8("lev0dial"));
     lev0dial->setGeometry(QRect(715 - 180, 19, 61, 64));
     lev0dial->setMaximum(20);
@@ -419,7 +423,7 @@ InputActionItem::InputActionItem(InputActionListWidget* parent, int index, int n
     lev1label->setAlignment(Qt::AlignCenter);
     lev1label->setText("Level [5]");
 
-    lev1dial = new QDialE(groupActionBox);
+    lev1dial = new QDialE(groupActionBox, QDIALE_GRAY_NOTCH_BLACKDOT);
     lev1dial->setObjectName(QString::fromUtf8("lev1dial"));
     lev1dial->setGeometry(QRect(787 - 180, 19, 61, 64));
     lev1dial->setMaximum(20);
@@ -439,7 +443,7 @@ InputActionItem::InputActionItem(InputActionListWidget* parent, int index, int n
     lev2label->setAlignment(Qt::AlignCenter);
     lev2label->setText("Level [7]");
 
-    lev2dial = new QDialE(groupActionBox);
+    lev2dial = new QDialE(groupActionBox, QDIALE_GRAY_NOTCH_BLACKDOT);
     lev2dial->setObjectName(QString::fromUtf8("lev2dial"));
     lev2dial->setGeometry(QRect(859 - 180, 19, 61, 64));
     lev2dial->setMaximum(20);
@@ -1765,6 +1769,10 @@ InputSequencerListWidget::InputSequencerListWidget(QWidget* parent, MidiInContro
     setStyleSheet("QListWidget {background-color: #e0e0c0;}\n"
                   "QListWidget::item QGroupBox {font: bold; border-bottom: 2px solid blue;\n"
                   "border: 2px solid black; border-radius: 7px; margin-top: 1ex;}\n"
+                  "QGroupBox::indicator:unchecked {image: url(:/run_environment/graphics/custom/unchecked.png);}\n"
+                  "QGroupBox::indicator:checked {image: url(:/run_environment/graphics/custom/checked.png);}\n"
+                  "QGroupBox QCheckBox::indicator:unchecked {image: url(:/run_environment/graphics/custom/unchecked.png);}\n"
+                  "QGroupBox QCheckBox::indicator:checked {image: url(:/run_environment/graphics/custom/checked.png);}\n"
                   "QGroupBox::title {subcontrol-origin: margin; left: 12px;\n"
                   "subcontrol-position: top left; padding: 0 2px; }");
 
@@ -2344,7 +2352,7 @@ InputSequencerItem::InputSequencerItem(InputSequencerListWidget* parent, int ind
 
     });
 
-    DialVol = new QDialE(groupSeq);
+    DialVol = new QDialE(groupSeq, QDIALE_GRAY_NOTCH_BLACKDOT);
     DialVol->setObjectName(QString::fromUtf8("DialVol") + QString::number(index * 64 + number));
     DialVol->setGeometry(QRect(98, 22, 61, 64));
     DialVol->setMaximum(127);
@@ -2365,7 +2373,7 @@ InputSequencerItem::InputSequencerItem(InputSequencerListWidget* parent, int ind
     labelVol->setAlignment(Qt::AlignCenter);
     labelVol->setText("Volume");
 
-    DialBeats = new QDialE(groupSeq);
+    DialBeats = new QDialE(groupSeq, QDIALE_GRAY_NOTCH_BLACKDOT);
     DialBeats->setObjectName(QString::fromUtf8("DialBeats") + QString::number(index * 64 + number));
     DialBeats->setGeometry(QRect(169, 23, 61, 64));
     DialBeats->setMinimum(1);

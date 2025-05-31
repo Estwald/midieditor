@@ -50,6 +50,16 @@
 
 #include "DataEditor.h"
 
+#ifdef IS_QT5
+    #define METATYPE_INT QVariant::Int
+    #define METATYPE_BYTEARRAY QVariant::ByteArray
+    #define METATYPE_STRING QVariant::String
+#else
+    #define METATYPE_INT QMetaType(QMetaType::Int)
+    #define METATYPE_BYTEARRAY QMetaType(QMetaType::fromType<QByteArray>())
+    #define METATYPE_STRING QMetaType(QMetaType::QString)
+#endif
+
 QSize EventWidgetDelegate::sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const
 {
     EventWidget::EditorField field = static_cast<EventWidget::EditorField>(index.data(Qt::UserRole).toInt());
@@ -135,7 +145,7 @@ void EventWidgetDelegate::setEditorData(QWidget* editor, const QModelIndex& inde
         QSpinBox* spin = dynamic_cast<QSpinBox*>(editor);
         spin->setMinimum(0);
         spin->setMaximum(INT_MAX);
-        if (index.data().canConvert(QVariant::Int)) {
+        if (index.data().canConvert(METATYPE_INT)) {
             spin->setValue(index.data().toInt());
         }
         break;
@@ -153,11 +163,12 @@ void EventWidgetDelegate::setEditorData(QWidget* editor, const QModelIndex& inde
         box->setCurrentIndex(i);
         break;
     }
+
     case EventWidget::MidiEventNote: {
         QSpinBox* spin = dynamic_cast<QSpinBox*>(editor);
         spin->setMinimum(0);
         spin->setMaximum(127);
-        if (index.data().canConvert(QVariant::Int)) {
+        if (index.data().canConvert(METATYPE_INT)) {
             spin->setValue(index.data().toInt());
         }
         break;
@@ -166,7 +177,7 @@ void EventWidgetDelegate::setEditorData(QWidget* editor, const QModelIndex& inde
         QSpinBox* spin = dynamic_cast<QSpinBox*>(editor);
         spin->setMinimum(0);
         spin->setMaximum(INT_MAX);
-        if (index.data().canConvert(QVariant::Int)) {
+        if (index.data().canConvert(METATYPE_INT)) {
             spin->setValue(index.data().toInt());
         }
         break;
@@ -175,7 +186,7 @@ void EventWidgetDelegate::setEditorData(QWidget* editor, const QModelIndex& inde
         QSpinBox* spin = dynamic_cast<QSpinBox*>(editor);
         spin->setMinimum(0);
         spin->setMaximum(127);
-        if (index.data().canConvert(QVariant::Int)) {
+        if (index.data().canConvert(METATYPE_INT)) {
             spin->setValue(index.data().toInt());
         }
         break;
@@ -184,7 +195,7 @@ void EventWidgetDelegate::setEditorData(QWidget* editor, const QModelIndex& inde
         QSpinBox* spin = dynamic_cast<QSpinBox*>(editor);
         spin->setMinimum(0);
         spin->setMaximum(INT_MAX);
-        if (index.data().canConvert(QVariant::Int)) {
+        if (index.data().canConvert(METATYPE_INT)) {
             spin->setValue(index.data().toInt());
         }
         break;
@@ -193,7 +204,7 @@ void EventWidgetDelegate::setEditorData(QWidget* editor, const QModelIndex& inde
         QSpinBox* spin = dynamic_cast<QSpinBox*>(editor);
         spin->setMinimum(0);
         spin->setMaximum(15);
-        if (index.data().canConvert(QVariant::Int)) {
+        if (index.data().canConvert(METATYPE_INT)) {
             spin->setValue(index.data().toInt());
         }
         break;
@@ -220,7 +231,7 @@ void EventWidgetDelegate::setEditorData(QWidget* editor, const QModelIndex& inde
         }
         }
 
-        if (index.data().canConvert(QVariant::Int)) {
+        if (index.data().canConvert(METATYPE_INT)) {
             spin->setValue(index.data().toInt());
         }
         break;
@@ -269,7 +280,7 @@ void EventWidgetDelegate::setEditorData(QWidget* editor, const QModelIndex& inde
         QSpinBox* spin = dynamic_cast<QSpinBox*>(editor);
         spin->setMinimum(1);
         spin->setMaximum(99);
-        if (index.data().canConvert(QVariant::Int)) {
+        if (index.data().canConvert(METATYPE_INT)) {
             spin->setValue(index.data().toInt());
         }
         break;
@@ -300,7 +311,7 @@ void EventWidgetDelegate::setEditorData(QWidget* editor, const QModelIndex& inde
     }
     case EventWidget::TextText: {
         QTextEdit* edit = dynamic_cast<QTextEdit*>(editor);
-        if (index.data().canConvert(QVariant::String)) {
+        if (index.data().canConvert(METATYPE_STRING)) {
             edit->setPlainText(index.data().toString());
         }
         break;
@@ -308,14 +319,14 @@ void EventWidgetDelegate::setEditorData(QWidget* editor, const QModelIndex& inde
     case EventWidget::UnknownType: {
         QLineEdit* edit = dynamic_cast<QLineEdit*>(editor);
         edit->setInputMask("HH");
-        if (index.data().canConvert(QVariant::String)) {
+        if (index.data().canConvert(METATYPE_STRING)) {
             edit->setText(index.data().toString().right(2));
         }
         break;
     }
     case EventWidget::MidiEventData: {
         DataEditor* edit = dynamic_cast<DataEditor*>(editor);
-        if (index.data(Qt::UserRole + 2).canConvert(QVariant::ByteArray)) {
+        if (index.data(Qt::UserRole + 2).canConvert(METATYPE_BYTEARRAY)) {
             edit->setData(index.data(Qt::UserRole + 2).toByteArray());
         }
         break;

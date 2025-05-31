@@ -29,16 +29,21 @@
 #include <QMultiMap>
 #include <QResource>
 
+#include <QMediaPlayer>
+
 #ifdef USE_FLUIDSYNTH
     #include "fluid/fluidsynth_proc.h"
     fluidsynth_proc *fluid_output=NULL;
     QMutex *vst_fluid_lock = NULL;
+#else
+    #include <QSharedMemory>
 #endif
 
 bool MidieditorMaster = false;
 
 QSharedMemory *IsFirstInstance = NULL;
 
+#if 1
 #ifdef NO_CONSOLE_MODE
 #include <tchar.h>
 #include <windows.h>
@@ -66,11 +71,29 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmd, int show)
     }
 
 #else
+
+#include "midi/Metronome.h"
+#include <windows.h>
+
+#include <initguid.h>
+#if 0
+DEFINE_GUID(KSDATAFORMAT_SUBTYPE_PCM,
+            0x00000001, 0x0000, 0x0010,
+            0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71);
+DEFINE_GUID(KSDATAFORMAT_SUBTYPE_IEEE_FLOAT,
+            0x00000003, 0x0000, 0x0010,
+            0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71);
+
+
+#endif
+
 int main(int argc, char* argv[])
 {
 #endif
 
     QApplication a(argc, argv);
+
+    Metronome::_instance =  new Metronome();
 
 #ifdef USE_FLUIDSYNTH
 
@@ -132,6 +155,10 @@ int main(int argc, char* argv[])
 #endif
 
 #ifdef USE_FLUIDSYNTH
+    using_SSE2 = supportsSSE2();
+    if(using_SSE2)
+      qWarning("SSE2 enabled");
+
     fluid_output = new fluidsynth_proc();
     if(!fluid_output) {
         qWarning("Error creating fluid_output from main.c");
@@ -215,3 +242,18 @@ int main(int argc, char* argv[])
 
     return ret;
 }
+
+#else
+int main(int argc, char* argv[])
+{
+
+
+    QApplication a(argc, argv);
+
+    // Inicialización de Qt Multimedia después de QApplication
+    QMediaPlayer player;
+    return 0;
+}
+#endif
+
+

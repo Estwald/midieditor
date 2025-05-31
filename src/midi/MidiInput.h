@@ -31,7 +31,9 @@
 class MidiEvent;
 class RtMidiIn;
 class RtMidiOut;
+#ifdef IS_QT5
 class QStringList;
+#endif
 class MidiTrack;
 
 //#define HACK_INPUT
@@ -72,12 +74,12 @@ public:
         QByteArray b;
 
         b = a.left(i);
-        if((i + 1) < a.count())
+        if((i + 1) < a.length())
             b+= a.mid(i + 1);
 /*
         for(int n = 0; n < i; n++)
             b.append(a.at(n));
-        for(int n = i + 1; n < a.count(); n++)
+        for(int n = i + 1; n < a.length(); n++)
             b.append(a.at(n));
         a = b;
 */

@@ -79,9 +79,17 @@ ChannelListItem::ChannelListItem(int ch, ChannelListWidget* parent, int track_in
     QPalette palette = toolBar->palette();
 #ifdef CUSTOM_MIDIEDITOR_GUI
     // Estwald Color Changes
-    palette.setColor(QPalette::Background, QColor(0xe0e0c0));
+    #ifdef IS_QT5
+        palette.setColor(QPalette::Background, QColor(0xe0e0c0));
+    #else
+        palette.setColor(QPalette::Window, QColor(0xe0e0c0));
+    #endif
 #else
-    palette.setColor(QPalette::Background, Qt::white);
+    #ifdef IS_QT5
+        palette.setColor(QPalette::Background, Qt::white);
+    #else
+        palette.setColor(QPalette::Window, Qt::white);
+    #endif
 #endif
     toolBar->setPalette(palette);
 
@@ -199,7 +207,7 @@ ChannelListItem::ChannelListItem(int ch, ChannelListWidget* parent, int track_in
             else
                 spinOctave->setStyleSheet(QString::fromUtf8("background-color: #8010f030;"));
 
-            if(channel < 0 || channel >= 16)
+            if((channel < 0) || (channel >= 16))
                 return;
 
             if(OctaveChan_MIDI[channel] == v) return;
@@ -380,6 +388,7 @@ void ChannelListItem::onBeforeUpdate()
     static bool reentry = false;
     if(reentry)
         return;
+
     reentry = true;
 
     QString text;
@@ -606,11 +615,13 @@ void ChannelListWidget::chooseChannel(QListWidgetItem* item)
         update();
     }
 }
-
+#include <QTimer>
 void ChannelListWidget::setFile(MidiFile* f, bool update)
 {
     file = f;
+
     connect(file->protocol(), SIGNAL(actionFinished()), this, SLOT(update()));
+
     if(update)
         this->update();
 }
@@ -661,6 +672,7 @@ void ChannelListWidget::update()
 {
     int index = -1;
 
+
     this->setCurrentRow(0);
 
     //foreach (ChannelListItem* item, items) {
@@ -679,6 +691,7 @@ void ChannelListWidget::update()
     }
 
     QListWidget::update();
+
 }
 
 MidiFile* ChannelListWidget::midiFile()

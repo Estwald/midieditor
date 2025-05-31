@@ -222,6 +222,7 @@ MidiSettingsWidget::MidiSettingsWidget(QWidget* parent)
     // output
     for(int n = 0; n < MAX_OUTPUT_DEVICES; n++) {
         _outList[n] = new QListWidget(this);
+
         connect(_outList[n], SIGNAL(itemChanged(QListWidgetItem*)), this,
             SLOT(outputChanged(QListWidgetItem*)));
 
@@ -307,7 +308,6 @@ MidiSettingsWidget::MidiSettingsWidget(QWidget* parent)
 #ifndef USE_FLUIDSYNTH
     FluidSynthTracksAuto->setDisabled(true);
     FluidSynthTracksAuto->setChecked(false);
-
 #else
     if(MidiOutput::FluidSynthTracksAuto) {
         spinTrack->setDisabled(true);
@@ -381,8 +381,11 @@ MidiSettingsWidget::MidiSettingsWidget(QWidget* parent)
         spinTrack->setDisabled(true);
         spinTrack->setValue(1);
     }
-
+#ifdef IS_QT5
     connect(AllTracksToOne, static_cast<void (QCheckBox::*)(int)>(&QCheckBox::stateChanged), [=](int state)
+#else
+    connect(AllTracksToOne, static_cast<void (QCheckBox::*)(Qt::CheckState)>(&QCheckBox::checkStateChanged), [=](Qt::CheckState state)
+#endif
     {
         int num = 0;
 
@@ -422,7 +425,11 @@ MidiSettingsWidget::MidiSettingsWidget(QWidget* parent)
 
 #ifdef USE_FLUIDSYNTH
 
+#ifdef IS_QT5
     connect(FluidSynthTracksAuto, static_cast<void (QCheckBox::*)(int)>(&QCheckBox::stateChanged), [=](int state)
+#else
+    connect(FluidSynthTracksAuto, static_cast<void (QCheckBox::*)(Qt::CheckState)>(&QCheckBox::checkStateChanged), [=](Qt::CheckState state)
+#endif
     {
         if(state == Qt::Checked) {
 
@@ -468,13 +475,22 @@ MidiSettingsWidget::MidiSettingsWidget(QWidget* parent)
 
 #endif
 
+#ifdef IS_QT5
     connect(ForceFluidSynthDrum9, static_cast<void (QCheckBox::*)(int)>(&QCheckBox::stateChanged), [=](int state)
+#else
+    connect(ForceFluidSynthDrum9, static_cast<void (QCheckBox::*)(Qt::CheckState)>(&QCheckBox::checkStateChanged), [=](Qt::CheckState state)
+#endif
     {
         MidiOutput::forceDrum((state == Qt::Checked) ? true : false);
 
     });
 
+#ifdef IS_QT5
     connect(SaveMidiOutDatas, static_cast<void (QCheckBox::*)(int)>(&QCheckBox::stateChanged), [=](int state)
+#else
+    connect(SaveMidiOutDatas, static_cast<void (QCheckBox::*)(Qt::CheckState)>(&QCheckBox::checkStateChanged), [=](Qt::CheckState state)
+#endif
+
     {
         MidiOutput::SaveMidiOutDatas = (state == Qt::Checked) ? true : false;
 
@@ -563,12 +579,12 @@ void MidiSettingsWidget::reloadOutputPorts()
                 QListWidgetItem::UserType);
             item->setFlags(Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsUserCheckable);
             item->setCheckState(Qt::Unchecked);
+#ifdef USE_FLUIDSYNTH
             if(MidiOutput::FluidDevice(name) >= 0) {
                 item->setBackground(QBrush(QColor(0xd0ffd0)));
                 item->setToolTip("Fluidsynth Channel device");
-            }
+            } else {
 
-            else {
                 if(name != "" && name == MidiOutput::outputPort(n) && MidiOutput::_midiOutMAP[n] >= 0) {
                     item->setBackground(QBrush(QColor(0xd0ffff)));
                     item->setToolTip("Virtual device (it is connected over Track " +
@@ -578,7 +594,13 @@ void MidiSettingsWidget::reloadOutputPorts()
                 }
 
             }
+#else
 
+            if(name != ""){
+                item->setToolTip("Midi Output device");
+            }
+
+#endif
             if (name != "" && name == MidiOutput::outputPort(n)) {
                 item->setCheckState(Qt::Checked);
             }

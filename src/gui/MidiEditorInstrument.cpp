@@ -590,7 +590,7 @@ MyInstrument::MyInstrument(QWidget *MAINW, MatrixWidget* MW, MidiFile* f,  int i
 
         forceGetTimeBox = new QCheckBox(this);
         forceGetTimeBox->setObjectName(QString::fromUtf8("forceGetTimeBox"));
-        forceGetTimeBox->setGeometry(QRect(163 + 75, yr2 + 14 + 25, 100, 17));
+        forceGetTimeBox->setGeometry(QRect(163 + 75, yr2 + 14 + 25, 130, 17));
         forceGetTimeBox->setToolTip("Force get the internal speed of the sample\n"
                                 "when it is loaded (EDIT, double clicking...)\n"
                                 "in the editor area from the track samples.");
@@ -755,7 +755,7 @@ MyInstrument::MyInstrument(QWidget *MAINW, MatrixWidget* MW, MidiFile* f,  int i
             if(action == EDITDIALOG_REMOVE) { // delete
 
                 QList <QListWidgetItem *> list = rhythmlist->selectedItems();
-                if(list.count() > 1) {
+                if(list.length() > 1) {
 
                     if(QMessageBox::information(this, "Rhythm Box Editor",
                         "Are you sure to REMOVE multiple samples?",
@@ -804,7 +804,7 @@ MyInstrument::MyInstrument(QWidget *MAINW, MatrixWidget* MW, MidiFile* f,  int i
                     return;
                 }
 
-                if(titleEdit->text() == "" || titleEdit->text().count() < 4
+                if(titleEdit->text() == "" || titleEdit->text().length() < 4
                         || titleEdit->text().toUtf8().at(0) < 65) {
                     QMessageBox::information(this, "Rhythm Box Editor",
                                         "sample name too short or invalid",
@@ -895,7 +895,7 @@ MyInstrument::MyInstrument(QWidget *MAINW, MatrixWidget* MW, MidiFile* f,  int i
                play_rhythm_sample = 0;
                pButton->setChecked(false);
 
-               if(titleEdit->text() == "" || titleEdit->text().count() < 4
+               if(titleEdit->text() == "" || titleEdit->text().length() < 4
                        || titleEdit->text().toUtf8().at(0) < 65) {
                    QMessageBox::information(this, "Rhythm Box Editor",
                                        "sample name too short or invalid",
@@ -1073,7 +1073,7 @@ MyInstrument::MyInstrument(QWidget *MAINW, MatrixWidget* MW, MidiFile* f,  int i
             } else if(action == EDITDIALOG_INSERT
                       || action == EDITDIALOG_SET) { // set / insert
 
-                if(titleEdit->text() == "" || titleEdit->text().count() < 4
+                if(titleEdit->text() == "" || titleEdit->text().length() < 4
                         || titleEdit->text().toUtf8().at(0) < 65) {
                     QMessageBox::information(this, "Rhythm Box Editor",
                                         "sample name too short or invalid",
@@ -1613,14 +1613,14 @@ MyInstrument::MyInstrument(QWidget *MAINW, MatrixWidget* MW, MidiFile* f,  int i
         translabel->setAlignment(Qt::AlignCenter);
         translabel->setText("Transpose");
 
-        volumeSlider = new QSlider(groupBox);
+        volumeSlider = new QSliderE(groupBox, 11, QSLIDER_YELLOW_TINY);
         volumeSlider->setObjectName(QString::fromUtf8("volumeSlider"));
         volumeSlider->setGeometry(QRect(15, 92, 91, 22));
         volumeSlider->setMaximum(127);
         volumeSlider->setValue(note_volume);
         volumeSlider->setOrientation(Qt::Horizontal);
-        volumeSlider->setTickPosition(QSlider::TicksBelow);
-        volumeSlider->setTickInterval(10);
+        //volumeSlider->setTickPosition(QSlider::TicksBelow);
+        //volumeSlider->setTickInterval(10);
         vollabel = new QLabel(groupBox);
         vollabel->setObjectName(QString::fromUtf8("vollabel"));
         vollabel->setGeometry(QRect(41, 80, 47, 13));
@@ -1655,10 +1655,10 @@ MyInstrument::MyInstrument(QWidget *MAINW, MatrixWidget* MW, MidiFile* f,  int i
     }
 
     time_update = new QTimer();
+
     time_update->callOnTimeout(this,  [=]()
     {
         static int count =0;
-
 
 
         if(!is_rhythm) {
@@ -2081,7 +2081,7 @@ void MyInstrument::push_track_rhythm(QFile *file, int mode) {
         (*stream) << (quint8) '0';
         tempByte32 = a.size();
         (*stream) << tempByte32;
-        for(int n = 0; n < a.count(); n++)
+        for(int n = 0; n < a.length(); n++)
             (*stream) << (quint8) a.at(n);
     }
 
@@ -2097,7 +2097,7 @@ void MyInstrument::push_track_rhythm(QFile *file, int mode) {
 
 void MyInstrument::pop_track_rhythm(QFile *file, int mode) {
 
-    QMListWidget *rh;
+    QMListWidget *rh = NULL;
     int nrow = 0;
 
     if(mode < 128) {
@@ -2147,7 +2147,8 @@ void MyInstrument::pop_track_rhythm(QFile *file, int mode) {
         (*stream) >> nsamples;
     
         if(mode == 0) {
-            rh->clear();
+            if(rh)
+                rh->clear();
         } else {
             for(int m = rhythmSamplelist->count() - 1 ; m >= 0 ; m--) {
                 if(rhythmSamplelist->item(m)->flags() & Qt::ItemIsUserCheckable) {
@@ -2598,9 +2599,9 @@ void MyInstrument::copy_samples() {
 
     QList<QListWidgetItem *> items = rhythmlist->selectedItems();
 
-    if(items.count()) {
+    if(items.length()) {
         sampleItems.clear();
-        for(int m = 0 ; m < items.count(); m++) {
+        for(int m = 0 ; m < items.length(); m++) {
             sampleItems.append(items.at(m));
         }
     }
@@ -2613,9 +2614,9 @@ void MyInstrument::paste_samples() {
     if(row < 0)
         return;
 
-    if(sampleItems.count()) {
+    if(sampleItems.length()) {
 
-        for(int m = sampleItems.count() - 1 ; m >= 0 ; m--) {
+        for(int m = sampleItems.length() - 1 ; m >= 0 ; m--) {
             QListWidgetItem *newI = new  QListWidgetItem();
             *newI = *sampleItems.at(m);
             rhythmlist->insertItem(row + 1, newI);
@@ -2752,7 +2753,12 @@ void MyInstrument::paintEvent(QPaintEvent* /*event*/) {
 
         if(piano_keys_time[57] >=0)
             painter->fillRect(xx, yy, 64, 64+16 , QColor(0xf0, 0x30 ,0x30, 0x60));
+#ifdef IS_QT5
         painter->drawImage(QRect(xx, yy, 64, 64), DrumImage[3]->mirrored(true, false));
+#else
+        painter->drawImage(QRect(xx, yy, 64, 64), DrumImage[3]->flipped(Qt::Horizontal));
+#endif
+
         painter->drawRect(xx, yy, 64, 64+16);
         painter->drawText(xx+16+12, yy + 64+4, "5"); // crash cymbal2
         xx+= 68;
@@ -2772,8 +2778,13 @@ void MyInstrument::paintEvent(QPaintEvent* /*event*/) {
         xx+= 68;
 
         if(piano_keys_time[55] >=0)
-            painter->fillRect(xx, yy, 64, 64+16 , QColor(0xf0, 0x30 ,0x30, 0x60));
+        painter->fillRect(xx, yy, 64, 64+16 , QColor(0xf0, 0x30 ,0x30, 0x60));
+
+#ifdef IS_QT5
         painter->drawImage(QRect(xx, yy, 64, 64), DrumImage[4]->mirrored(true, false));
+#else
+        painter->drawImage(QRect(xx, yy, 64, 64), DrumImage[4]->flipped(Qt::Horizontal));
+#endif
         painter->drawRect(xx, yy, 64, 64+16);
         painter->drawText(xx+16+12, yy + 64+4, "8"); // splash cymbal
         xx+= 68;
@@ -2788,7 +2799,12 @@ void MyInstrument::paintEvent(QPaintEvent* /*event*/) {
         painter->setBrush(Qt::darkGray);
         painter->drawPolygon(p, 4);
         painter->setBrush(Qt::NoBrush);
+
+#ifdef IS_QT5
         painter->drawImage(QRect(xx, yy, 64, 64), DrumImage[4]->mirrored(true, false));
+#else
+        painter->drawImage(QRect(xx, yy, 64, 64), DrumImage[4]->flipped(Qt::Horizontal));
+#endif
         painter->drawRect(xx, yy, 64, 64+16);
         painter->drawText(xx+16+12, yy + 64+4, "9"); // ride bell
         xx+= 68;
@@ -3054,12 +3070,12 @@ void MyInstrument::paintRhythm(QPainter* painter) {
         painter->setPen(Qt::black);
         QString s;
         s.setNum(480 * (m + 1) / 64);
-        int pix = 1 + ((s.count() == 2) ? 3 : 0)  + ((s.count() == 1) ? 7 : 0);
+        int pix = 1 + ((s.length() == 2) ? 3 : 0)  + ((s.length() == 1) ? 7 : 0);
         painter->drawText(163 + m * 24 + pix, yr2 + 16 + 25 * 2  + 12,
                           s);
 
         s.setNum(480 * (m + 33) / 64);
-        //pix = s.count() * 4 + 1;
+        //pix = s.length() * 4 + 1;
         painter->drawText(163 + m * 24 + 1 , yr2 + 16 + 25 * 2  + 32, s);
     }
 
@@ -3149,7 +3165,7 @@ void MyInstrument::keyPressEvent(QKeyEvent* event) {
 
         int key2 = key + ((drum_mode) ? 0 : trans_pos);
 
-        if(key2 < 0 || key2 > 127) key2= 0;
+        if((key2 < 0) || (key2 > 127)) key2= 0;
 
         if(key>=0 && piano_keys_time[key]<0) {
             int note = key;
@@ -3279,7 +3295,7 @@ void MyInstrument::keyReleaseEvent(QKeyEvent* event) {
         }
 
         int key2 = key + ((drum_mode) ? 0 : trans_pos);
-        if(key2 < 0 || key2 > 127) key2= 0;
+        if((key2 < 0) || (key2 > 127)) key2= 0;
 
         if(key>=0) {
             int note = key;
@@ -3323,8 +3339,13 @@ void MyInstrument::mousePressEvent(QMouseEvent* event) {
     if(!is_rhythm && drum_mode) return;
     if(is_playing && _piano_insert_mode && !MidiPlayer::isPlaying()) return;
 
+#ifdef IS_QT5
     xx= event->x();
     yy= event->y();
+#else
+    xx= event->position().x();
+    yy= event->position().y();
+#endif
 
     QByteArray a;
 
@@ -3439,7 +3460,7 @@ void MyInstrument::mousePressEvent(QMouseEvent* event) {
     }
 
     int key2 = key + trans_pos;
-    if(key2 < 0 || key2 > 127) key2= 0;
+    if((key2 < 0) || (key2 > 127)) key2= 0;
 
     if (key>=0 && playing_piano < 0) {
         // play note from the mouse
@@ -3447,7 +3468,7 @@ void MyInstrument::mousePressEvent(QMouseEvent* event) {
         if(playing_piano >= 0) {
             piano_keys_time[playing_piano] = -1;
             int key2 = playing_piano + (trans_pos);
-            if(key2 < 0 || key2 > 127) key2= 0;
+            if((key2 < 0) || (key2 > 127)) key2= 0;
 
             a.clear(); // note off
             a.append(0x80 | MidiOutput::standardChannel());
@@ -3523,7 +3544,7 @@ void MyInstrument::mouseReleaseEvent(QMouseEvent* /*event*/) {
         int note = playing_piano;
 
         int key2 = note + trans_pos;
-        if(key2 < 0 || key2 > 127) key2= 0;
+        if((key2 < 0) || (key2 > 127)) key2= 0;
 
         a.clear(); // note off
         a.append(0x80 | MidiOutput::standardChannel());
@@ -3864,7 +3885,7 @@ void QMListWidget::dropEvent(QDropEvent *event) {
                 s = rhythm.getName();
             }
 
-            if(m < 0 || !i || s == "" || s.count() < 4
+            if((m < 0) || !i || s == "" || s.length() < 4
                    || s.toUtf8().at(0) < 65) {
                 event->ignore();
                 QMListWidget::_drag = -1;
@@ -3892,8 +3913,13 @@ void QMListWidget::dropEvent(QDropEvent *event) {
             if(m >= 0) {
                 for(int n = 0; n < count(); n++) {
                     QRect r = visualItemRect(item(n));
+#ifdef IS_QT5
                     if(event->pos().x() >= r.x() && event->pos().x() <  r.x() + r.width() &&
-                       event->pos().y() >= r.y() && event->pos().y() <  r.y() + r.height()) {
+                        event->pos().y() >= r.y() && event->pos().y() <  r.y() + r.height()) {
+#else
+                    if(event->position().x() >= r.x() && event->position().x() <  r.x() + r.width() &&
+                        event->position().y() >= r.y() && event->position().y() <  r.y() + r.height()) {
+#endif
 
                         if(n != 0 && m != 0 && (
                                     ((item(n)->flags() & Qt::ItemIsUserCheckable) && (item(m)->flags() & Qt::ItemIsUserCheckable))
@@ -4090,19 +4116,19 @@ void rhythmData::get_rhythm_header(int *size_map, int *speed, int *drum_set) {
 }
 
 int rhythmData::get_drum_note(int index) {
-    if(index < 0 || index > 9) return 0;
+    if((index < 0) || (index > 9)) return 0;
     return set[index].at(0);
 }
 
 int rhythmData::get_drum_velocity(int index) {
-    if(index < 0 || index > 9) return 0;
+    if((index < 0) || (index > 9)) return 0;
     return set[index].at(1);
 }
 
 void rhythmData::set_drum_note(int index, int note) {
 
     note &= 127;
-    if(index < 0 || index > 9) return;
+    if((index < 0) || (index > 9)) return;
     set[index].remove(0, 1);
     set[index].insert(0, (unsigned char) note);
 }
@@ -4110,14 +4136,14 @@ void rhythmData::set_drum_note(int index, int note) {
 void rhythmData::set_drum_velocity(int index, int velocity) {
 
     velocity &= 127;
-    if(index < 0 || index > 9) return;
+    if((index < 0) || index > 9) return;
     set[index].remove(1, 1);
     set[index].insert(1, (unsigned char) velocity);
 }
 
 void rhythmData::insert(int index, unsigned char *set_map) {
 
-    if(index < 0 || index > 9) return;
+    if((index < 0) || (index > 9)) return;
     set[index].clear();
     for(int n = 0; n < _size_map; n++)
         set[index].append(set_map[n]);
@@ -4126,7 +4152,7 @@ void rhythmData::insert(int index, unsigned char *set_map) {
 
 void rhythmData::get(int index, unsigned char *get_map) {
 
-    if(index < 0 || index > 9) return;
+    if((index < 0) || (index > 9)) return;
 
     for(int n = 0; n < _size_map; n++)
         get_map[n] = set[index].at(n);
@@ -4148,7 +4174,7 @@ void Play_Thread::_fun_timer() {
     QByteArray a;
 
     if(play_rhythm_track) {
-        if(!Play_Thread::rhythm_samples.count() || play_rhythm_track_index == -2) return;
+        if(!Play_Thread::rhythm_samples.length() || play_rhythm_track_index == -2) return;
         if((play_rhythm_track_init || current_map_rhythm >= max_map_rhythm_track) ) {
             play_rhythm_track_init = 0;
             // load datas
@@ -4161,7 +4187,7 @@ void Play_Thread::_fun_timer() {
 
                 if(current_map_rhythm >= 2) {
                     play_rhythm_track_index++;
-                    if(play_rhythm_track_index >= Play_Thread::rhythm_samples.count()) {
+                    if(play_rhythm_track_index >= Play_Thread::rhythm_samples.length()) {
 
                         if(loop_rhythm_track) {
 
@@ -4194,7 +4220,7 @@ void Play_Thread::_fun_timer() {
 
                 memset(map_rhythm_track, 0, sizeof(unsigned char) * 10 * 34);
 
-                if(Play_Thread::rhythm_samples.count() <= 0) {
+                if(Play_Thread::rhythm_samples.length() <= 0) {
 
                     play_rhythm_track_index = -2;
                     return;
@@ -4389,15 +4415,16 @@ velocityDialog::velocityDialog(QWidget * parent) : QDialog(parent, Qt::WindowSys
         Velocity->setObjectName(QString::fromUtf8("Velocity"));
     Velocity->setWindowTitle("");
     Velocity->setFixedSize(242, 122);
+    Velocity->setStyleSheet("background: black; color: white;");
 
-    velocitySlider = new QSlider(Velocity);
+    velocitySlider = new QSliderE(Velocity, 11, QSLIDER_YELLOW_TINY);
     velocitySlider->setObjectName(QString::fromUtf8("velocitySlider"));
     velocitySlider->setGeometry(QRect(30, 60, 181, 22));
     velocitySlider->setMaximum(127);
     velocitySlider->setValue(64);
     velocitySlider->setOrientation(Qt::Horizontal);
-    velocitySlider->setTickPosition(QSlider::TicksAbove);
-    velocitySlider->setTickInterval(64);
+    //velocitySlider->setTickPosition(QSlider::TicksAbove);
+    //velocitySlider->setTickInterval(64);
 
     label = new QLabel(Velocity);
     label->setObjectName(QString::fromUtf8("label"));
@@ -4408,7 +4435,7 @@ velocityDialog::velocityDialog(QWidget * parent) : QDialog(parent, Qt::WindowSys
     vlabel = new QLabel(Velocity);
     vlabel->setObjectName(QString::fromUtf8("vlabel"));
     vlabel->setGeometry(QRect(110, 90, 21, 21));
-    vlabel->setStyleSheet(QString::fromUtf8("background: #ffffff"));
+    vlabel->setStyleSheet(QString::fromUtf8("background: #ffffff; color: black;"));
     vlabel->setAlignment(Qt::AlignCenter);
     vlabel->setNum(0);
     vlabel->setText(QString());
@@ -4670,14 +4697,14 @@ MyVirtualKeyboard::MyVirtualKeyboard(QWidget *MAINW, MatrixWidget* MW, MidiFile*
         translabel->setAlignment(Qt::AlignCenter);
         translabel->setText("Transpose");
 
-        volumeSlider = new QSlider(groupBox);
+        volumeSlider = new QSliderE(groupBox, 11, QSLIDER_YELLOW_TINY);
         volumeSlider->setObjectName(QString::fromUtf8("volumeSlider"));
         volumeSlider->setGeometry(QRect(15, 92, 91, 22));
         volumeSlider->setMaximum(127);
         volumeSlider->setValue(note_volume);
         volumeSlider->setOrientation(Qt::Horizontal);
-        volumeSlider->setTickPosition(QSlider::TicksBelow);
-        volumeSlider->setTickInterval(10);
+        //volumeSlider->setTickPosition(QSlider::TicksBelow);
+        //volumeSlider->setTickInterval(10);
         vollabel = new QLabel(groupBox);
         vollabel->setObjectName(QString::fromUtf8("vollabel"));
         vollabel->setGeometry(QRect(41, 80, 47, 13));
@@ -4721,7 +4748,7 @@ MyVirtualKeyboard::MyVirtualKeyboard(QWidget *MAINW, MatrixWidget* MW, MidiFile*
         font.setPointSize(12);
         slabel[n]->setText(QString::asprintf("%2.2i: %3.3i", ndial[n], values[n]));
 
-        sdial[n] = new QDialE(QD);
+        sdial[n] = new QDialE(QD, (n == 0) ? QDIALE_GREEN_NOTCH_BLACKLINE : QDIALE_BLACK_NOTCH_BLACKLINE);
         sdial[n]->setObjectName(QString::fromUtf8("mindial"));
         sdial[n]->setGeometry(QRect(px, 12, 51, 54));
         sdial[n]->setMinimum(0);
@@ -4820,7 +4847,7 @@ MyVirtualKeyboard::MyVirtualKeyboard(QWidget *MAINW, MatrixWidget* MW, MidiFile*
         QD->setFocus();
     });
 
-    connect(volumeSlider, QOverload<int>::of(&QSlider::valueChanged), [=](int vol)
+    connect(volumeSlider, QOverload<int>::of(&QSliderE::valueChanged), [=](int vol)
     {
         note_volume = vol;
 
@@ -4992,7 +5019,7 @@ void MyVirtualKeyboard::keyPressEvent(QKeyEvent* event) {
 
         int key2 = key + (trans_pos);
 
-        if(key2 < 0 || key2 > 127) key2= 0;
+        if((key2 < 0) || (key2 > 127)) key2= 0;
 
         if(key>=0 && piano_keys_time[key]<0) {
 
@@ -5039,7 +5066,7 @@ void MyVirtualKeyboard::keyReleaseEvent(QKeyEvent* event) {
         }
 
         int key2 = key + (trans_pos);
-        if(key2 < 0 || key2 > 127) key2= 0;
+        if((key2 < 0) || (key2 > 127)) key2= 0;
 
         if(key>=0) {
 
@@ -5060,8 +5087,13 @@ void MyVirtualKeyboard::keyReleaseEvent(QKeyEvent* event) {
 void MyVirtualKeyboard::mousePressEvent(QMouseEvent* event) {
     int key= -1;
 
+#ifdef IS_QT5
     xx= event->x();
     yy= event->y();
+#else
+    xx= event->position().x();
+    yy= event->position().y();
+#endif
 
     int key_pos = (octave_pos >= 48) ? 48 : octave_pos + 12;
 
@@ -5090,14 +5122,14 @@ void MyVirtualKeyboard::mousePressEvent(QMouseEvent* event) {
     }
 
     int key2 = key + trans_pos;
-    if(key2 < 0 || key2 > 127) key2= 0;
+    if((key2 < 0) || (key2 > 127)) key2= 0;
 
     if (key>=0) {
         // play note from the mouse
      if(playing_piano>=0) {
             piano_keys_time[playing_piano] = -1;
             int key2 = playing_piano + (trans_pos);
-            if(key2 < 0 || key2 > 127) key2= 0;
+            if((key2 < 0) || (key2 > 127)) key2= 0;
 
             std::vector<unsigned char> v;
             v.emplace_back((unsigned char) (0x80 | chan));
@@ -5129,7 +5161,7 @@ void MyVirtualKeyboard::mouseReleaseEvent(QMouseEvent* /*event*/) {
         int note = playing_piano;
 
         int key2 = note + trans_pos;
-        if(key2 < 0 || key2 > 127) key2= 0;
+        if((key2 < 0) || (key2 > 127)) key2= 0;
 
         std::vector<unsigned char> v;
         v.emplace_back((unsigned char) (0x80 | chan));

@@ -64,9 +64,17 @@ TrackListItem::TrackListItem(MidiTrack* track, TrackListWidget* parent)
     QPalette palette = toolBar->palette();
 #ifdef CUSTOM_MIDIEDITOR_GUI
     // Estwald Color Changes
-    palette.setColor(QPalette::Background, QColor(0xe0e0c0));
+    #ifdef IS_QT5
+        palette.setColor(QPalette::Background, QColor(0xe0e0c0));
+    #else
+        palette.setColor(QPalette::Window, QColor(0xe0e0c0));
+    #endif
 #else
-    palette.setColor(QPalette::Background, Qt::white);
+    #ifdef IS_QT5
+        palette.setColor(QPalette::Background, Qt::white);
+    #else
+        palette.setColor(QPalette::Window, Qt::white);
+    #endif
 #endif
     toolBar->setPalette(palette);
     // visibility

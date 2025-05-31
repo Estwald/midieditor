@@ -70,6 +70,21 @@ void QVLabel::paintEvent(QPaintEvent*) {
     painter.drawText(0, 0, text());
 }
 
+
+QString groupIndicator2 = QString::fromUtf8("\nQGroupBox::indicator:hover {border: 1px solid #c0ffc0; background-color: #c0ffc0;}\n"
+                            "QGroupBox::indicator:checked {border: 1px solid #b1b1b1; background-color: #00ff00;}\n"
+                            "QGroupBox::indicator:unchecked {border: 1px solid #b1b1b1; background-color: #404040;}");
+QString groupIndicator = QString::fromUtf8("\nQGroupBox::indicator:hover {border: 1px solid #c0ffc0; background-color: #c0ffc0;}\n"
+                            "QGroupBox::indicator:unchecked {image: url(:/run_environment/graphics/custom/unchecked.png);}\n"
+                            "QGroupBox::indicator:checked {image: url(:/run_environment/graphics/custom/checked.png);}\n"
+                            //"QGroupBox::title {subcontrol-origin: margin; left: 6px;\n"
+                            //"subcontrol-position: top left; padding: 0 2px; }\n"
+                            "QGroupBox::title {subcontrol-origin: margin; left: 0px;\n"
+                            "subcontrol-position: top center; padding: 0 2px; background-color: transparent;}\n"
+                            "QGroupBox QCheckBox::indicator:unchecked {image: url(:/run_environment/graphics/custom/unchecked.png);}\n"
+                            "QGroupBox QCheckBox::indicator:checked {image: url(:/run_environment/graphics/custom/checked.png);}\n");
+
+
 void FluidDialog::tab_MainVolume(QDialog */*FluidDialog*/){
 
     int expX = 240;
@@ -117,10 +132,10 @@ void FluidDialog::tab_MainVolume(QDialog */*FluidDialog*/){
 
     groupE = new QGroupBox(MainVolume);
     groupE->setObjectName(QString::fromUtf8("groupE"));
-    groupE->setGeometry(QRect(0, area_size_y+20, 752 + 125 + expX, buttons_y - area_size_y-20));
+    groupE->setGeometry(QRect(0, area_size_y+20, 752 + 125 + expX + NEWDESP, buttons_y - area_size_y-20));
     groupE->setStyleSheet(QString::fromUtf8("QGroupBox QToolTip {color: black;} \n"));
 
-    QSizePolicy sizePolicy1(QSizePolicy::Preferred, QSizePolicy::Preferred);
+    //QSizePolicy sizePolicy1(QSizePolicy::Preferred, QSizePolicy::Preferred);
     int x = 14;
 
     // get first track index for Fluidsynth channels
@@ -134,19 +149,20 @@ void FluidDialog::tab_MainVolume(QDialog */*FluidDialog*/){
     for(n = 0; n < SYNTH_CHANS; n++) {
         groupChan[n] = new QGroupBox(groupM/*scrollArea*/);
         if(n == channel_selected) {
-            groupChan[n]->setStyleSheet(QString::fromUtf8("background-color: #80303060;"));
-        }
+            groupChan[n]->setStyleSheet(QString::fromUtf8("QGroupBox {background-color: #80303060;}\n") + groupIndicator);
+        } else
+            groupChan[n]->setStyleSheet(groupIndicator);
 
         groupChan[n]->setObjectName(QString::fromUtf8("groupChan")+QString::number(n));
         groupChan[n]->setGeometry(QRect(x, 2, 53, 371));
         groupChan[n]->setFocusPolicy(Qt::NoFocus);
 
         x+=60;
-
+/*
         sizePolicy1.setHorizontalStretch(0);
         sizePolicy1.setVerticalStretch(0);
         sizePolicy1.setHeightForWidth(groupChan[n]->sizePolicy().hasHeightForWidth());
-
+*/
         groupChan[n]->setLayoutDirection(Qt::LeftToRight);
         groupChan[n]->setAlignment(Qt::AlignCenter);
         groupChan[n]->setFlat(false);
@@ -156,24 +172,25 @@ void FluidDialog::tab_MainVolume(QDialog */*FluidDialog*/){
                                                   "<p>the channel</p></body></html>");
         line[n] = new QFrame(groupChan[n]);
         line[n]->setObjectName(QString::fromUtf8("line"));
-        line[n]->setGeometry(QRect(27 + 4, 2, 16, 20));
+        line[n]->setGeometry(QRect(27 + 6, 2 + 8, 16, 8));
         line[n]->setFrameShadow(QFrame::Plain);
         line[n]->setLineWidth(8);
         line[n]->setFrameShape(QFrame::HLine);
+        //line[n]->setVisible(false);
 
-        ChanVol[n] = new QSlider(groupChan[n]);
+        ChanVol[n] = new QSliderE(groupChan[n], 7, QSLIDER_BLUE);
         ChanVol[n]->setObjectName(QString::fromUtf8("ChanVol")+QString::number(n));
         ChanVol[n]->setGeometry(QRect(12 + 4, 37, 22, 160));
         ChanVol[n]->setMouseTracking(false);
         ChanVol[n]->setMaximum(100);
         ChanVol[n]->setValue(fluid_output->getSynthChanVolume(n)*100/127);
         ChanVol[n]->setOrientation(Qt::Vertical);
-        ChanVol[n]->setTickPosition(QSlider::TicksBothSides);
-        ChanVol[n]->setTickInterval(25);
+        //ChanVol[n]->setTickPosition(QSlider::TicksBothSides);
+        //ChanVol[n]->setTickInterval(25);
         ChanVol[n]->setToolTip("<html><head/><body><p>Synth Expression Volume</p>"
                                                   "<p>of the channel</p></body></html>");
 
-        BalanceSlider[n] = new QSlider(groupChan[n]);
+        BalanceSlider[n] = new QSliderE(groupChan[n], 5, QSLIDER_YELLOW_TINY);
         BalanceSlider[n]->setObjectName(QString::fromUtf8("BalanceSlider")+QString::number(n));
         BalanceSlider[n]->setGeometry(QRect(8 + 4, 212, 30, 22));
         BalanceSlider[n]->setInputMethodHints(Qt::ImhNone);
@@ -182,8 +199,8 @@ void FluidDialog::tab_MainVolume(QDialog */*FluidDialog*/){
         BalanceSlider[n]->setValue(fluid_output->getAudioBalance(n));
         BalanceSlider[n]->setTracking(true);
         BalanceSlider[n]->setOrientation(Qt::Horizontal);
-        BalanceSlider[n]->setTickPosition(QSlider::TicksAbove);
-        BalanceSlider[n]->setTickInterval(25);
+        //BalanceSlider[n]->setTickPosition(QSlider::TicksAbove);
+        //BalanceSlider[n]->setTickInterval(50);
         BalanceSlider[n]->setToolTip("<html><head/><body><p>Output balance control</p>"
                                           "<p>of the channel</p></body></html>");
 
@@ -205,18 +222,6 @@ void FluidDialog::tab_MainVolume(QDialog */*FluidDialog*/){
         Chan[n]->setGeometry(QRect(2 + 4, 17, 40, 13));
         Chan[n]->setAlignment(Qt::AlignCenter);
 
-        chanGain[n] = new QDial(groupChan[n]);
-        chanGain[n]->setObjectName(QString::fromUtf8("chanGain")+QString::number(n));
-        chanGain[n]->setGeometry(QRect(-3 + 4, 270, 50, 91));
-        chanGain[n]->setMinimum(-1000);
-        chanGain[n]->setMaximum(1000);
-        chanGain[n]->setValue(fluid_output->getAudioGain(n));
-        chanGain[n]->setPageStep(50);
-        chanGain[n]->setNotchTarget(100.0);
-        chanGain[n]->setNotchesVisible(true);
-        chanGain[n]->setToolTip("<html><head/><body><p>Output control gain</p>"
-                                  "<p>of the channel</p></body></html>");
-
         label = new QLabel(groupChan[n]);
         label->setObjectName(QString::fromUtf8("label")+QString::number(n));
         label->setGeometry(QRect(7 + 4, 270, 31, 16));
@@ -229,7 +234,20 @@ void FluidDialog::tab_MainVolume(QDialog */*FluidDialog*/){
         chanGainLabel[n]->setFrameShadow(QFrame::Raised);
         chanGainLabel[n]->setAlignment(Qt::AlignCenter);
         chanGainLabel[n]->setToolTip("<html><head/><body><p>Output control gain</p>"
+                                      "<p>of the channel</p></body></html>");
+
+        chanGain[n] = new QDialE(groupChan[n], QDIALE_GRAY_NOTCH_WHITEDOT, 10);
+        chanGain[n]->setObjectName(QString::fromUtf8("chanGain")+QString::number(n));
+        chanGain[n]->setGeometry(QRect(-3 + 4, 270, 50, 91));
+        chanGain[n]->setMinimum(-1000);
+        chanGain[n]->setMaximum(1000);
+        chanGain[n]->setValue(fluid_output->getAudioGain(n));
+        chanGain[n]->setPageStep(50);
+        chanGain[n]->setNotchTarget(100.0);
+        chanGain[n]->setNotchesVisible(true);
+        chanGain[n]->setToolTip("<html><head/><body><p>Output control gain</p>"
                                   "<p>of the channel</p></body></html>");
+
 
         int nn = (n & 15) + 32 * (n/16);
 
@@ -294,12 +312,13 @@ void FluidDialog::tab_MainVolume(QDialog */*FluidDialog*/){
 
     QGroupBox *groupV = new QGroupBox(MainVolume);
     groupV->setObjectName(QString::fromUtf8("groupV"));
-    groupV->setGeometry(QRect(590+50 + 125 + expX - 16, 15, 125, area_size_y));
-    groupV->setStyleSheet(QString::fromUtf8("QGroupBox QToolTip {color: black;} \n"));
+    groupV->setGeometry(QRect(590+50 + 125 + expX - 16 + NEWDESP, 15, 127, area_size_y - 122));
+    groupV->setStyleSheet(QString::fromUtf8("QGroupBox QToolTip {color: black;} \n") + groupIndicator);
 
     groupMainVol = new QGroupBox(groupV);
     groupMainVol->setObjectName(QString::fromUtf8("groupMainVol"));
     groupMainVol->setStyleSheet(QString::fromUtf8("QGroupBox QToolTip {color: black;} \n"));
+
     groupMainVol->setGeometry(QRect(8, 2, 45, 275));
     groupMainVol->setLayoutDirection(Qt::LeftToRight);
     groupMainVol->setAlignment(Qt::AlignCenter);
@@ -314,7 +333,7 @@ void FluidDialog::tab_MainVolume(QDialog */*FluidDialog*/){
     MainVolVal->setStyleSheet(QString::fromUtf8("color: black; background: white"));
     MainVolVal->setText(QString::number(((double) fluid_output->getSynthGain())/100, 'f', 2));
 
-    MainVol = new QSlider(groupMainVol);
+    MainVol = new QSliderE(groupMainVol, 9, QSLIDER_GREEN);
     MainVol->setObjectName(QString::fromUtf8("MainVol"));
     MainVol->setGeometry(QRect(12, 37, 22, 200));
     MainVol->setMouseTracking(false);
@@ -322,8 +341,8 @@ void FluidDialog::tab_MainVolume(QDialog */*FluidDialog*/){
     MainVol->setMinimum(0);
     MainVol->setValue(fluid_output->getSynthGain());
     MainVol->setOrientation(Qt::Vertical);
-    MainVol->setTickPosition(QSlider::TicksBothSides);
-    MainVol->setTickInterval(25);
+    //MainVol->setTickPosition(QSlider::TicksBothSides);
+    //MainVol->setTickInterval(25);
     MainVol->setToolTip("<html><head/><body><p>Synth Gain</p></body></html>");
 
     groupVUm = new QGroupBox(groupV);
@@ -431,7 +450,7 @@ void FluidDialog::tab_MainVolume(QDialog */*FluidDialog*/){
     label_distortion_disp->setToolTip("<html><head/><body><p>Distortion Input Gain</p>"
                                         "<p>of the current channel</p></body></html>");
 
-    DistortionGain = new QDial(DistortionBox);
+    DistortionGain = new QDialE(DistortionBox, QDIALE_GRAY_NOTCH_WHITEDOT, 10);
     DistortionGain->setObjectName(QString::fromUtf8("DistortionGain"));
     DistortionGain->setGeometry(QRect(3, 41, 50, 71));
     DistortionGain->setMinimum(0);
@@ -439,7 +458,7 @@ void FluidDialog::tab_MainVolume(QDialog */*FluidDialog*/){
     DistortionGain->setValue(
                 fluid_output->get_param_filter(PROC_FILTER_DISTORTION,
                 channel_selected, GET_FILTER_GAIN));
-    DistortionGain->setNotchTarget(10.0);
+    DistortionGain->setNotchTarget(20.0);
     DistortionGain->setNotchesVisible(true);
     DistortionGain->setToolTip("<html><head/><body><p>Distortion Input Gain</p>"
                                  "<p>of the current channel</p></body></html>");
@@ -505,7 +524,7 @@ void FluidDialog::tab_MainVolume(QDialog */*FluidDialog*/){
     label_low_disp->setFrameShadow(QFrame::Raised);
     label_low_disp->setAlignment(Qt::AlignCenter);
 
-    LowCutGain = new QDial(LowCutBox);
+    LowCutGain = new QDialE(LowCutBox, QDIALE_GRAY_NOTCH_WHITEDOT, 10);
     LowCutGain->setObjectName(QString::fromUtf8("LowCutGain"));
     LowCutGain->setGeometry(QRect(3, 41, 50, 71));
     LowCutGain->setMinimum(0);
@@ -513,7 +532,7 @@ void FluidDialog::tab_MainVolume(QDialog */*FluidDialog*/){
     LowCutGain->setValue(
                 fluid_output->get_param_filter(PROC_FILTER_LOW_PASS,
                 channel_selected, GET_FILTER_GAIN));
-    LowCutGain->setNotchTarget(10.0);
+    LowCutGain->setNotchTarget(20.0);
     LowCutGain->setNotchesVisible(true);
     LowCutGain->setToolTip("<html><head/><body><p>Low Cut Filter Gain</p>"
                                  "<p>of the current channel</p></body></html>");
@@ -526,14 +545,14 @@ void FluidDialog::tab_MainVolume(QDialog */*FluidDialog*/){
     label_low_disp2->setFrameShadow(QFrame::Raised);
     label_low_disp2->setAlignment(Qt::AlignCenter);
 
-    LowCutFreq = new QDial(LowCutBox);
+    LowCutFreq = new QDialE(LowCutBox, QDIALE_GRAY_NOTCH_WHITEDOT, 10);
     LowCutFreq->setObjectName(QString::fromUtf8("LowCutFreq"));
     LowCutFreq->setGeometry(QRect(60, 41, 50, 71));
     LowCutFreq->setMinimum(50);
     LowCutFreq->setMaximum(2500);
     LowCutFreq->setValue(fluid_output->get_param_filter(PROC_FILTER_LOW_PASS,
                                                         channel_selected, GET_FILTER_FREQ));
-    LowCutFreq->setNotchTarget(50.0);
+    LowCutFreq->setNotchTarget(200.0);
     LowCutFreq->setNotchesVisible(true);
     LowCutFreq->setToolTip("<html><head/><body><p>Low Cut Filter Frequency</p>"
                                          "<p>of the current channel</p></body></html>");
@@ -545,14 +564,14 @@ void FluidDialog::tab_MainVolume(QDialog */*FluidDialog*/){
     label_low_disp3->setFrameShadow(QFrame::Raised);
     label_low_disp3->setAlignment(Qt::AlignCenter);
 
-    LowCutRes = new QDial(LowCutBox);
+    LowCutRes = new QDialE(LowCutBox, QDIALE_GRAY_NOTCH_WHITEDOT, 10);
     LowCutRes->setObjectName(QString::fromUtf8("LowCutRes"));
     LowCutRes->setGeometry(QRect(60+57, 41, 50, 71));
     LowCutRes->setMinimum(0);
     LowCutRes->setMaximum(250);
     LowCutRes->setValue(fluid_output->get_param_filter(PROC_FILTER_HIGH_PASS,
                                                         channel_selected, GET_FILTER_RES));
-    LowCutRes->setNotchTarget(14.0);
+    LowCutRes->setNotchTarget(28.0);
     LowCutRes->setNotchesVisible(true);
     LowCutRes->setToolTip("<html><head/><body><p>Low Cut Filter Resonance</p>"
                                          "<p>of the current channel</p></body></html>");
@@ -623,7 +642,7 @@ void FluidDialog::tab_MainVolume(QDialog */*FluidDialog*/){
     label_high_disp->setFrameShadow(QFrame::Raised);
     label_high_disp->setAlignment(Qt::AlignCenter);
 
-    HighCutGain = new QDial(HighCutBox);
+    HighCutGain = new QDialE(HighCutBox, QDIALE_GRAY_NOTCH_WHITEDOT, 10);
     HighCutGain->setObjectName(QString::fromUtf8("HighCutGain"));
     HighCutGain->setGeometry(QRect(3, 41, 50, 71));
     HighCutGain->setMinimum(0);
@@ -631,7 +650,7 @@ void FluidDialog::tab_MainVolume(QDialog */*FluidDialog*/){
     HighCutGain->setValue(
                 fluid_output->get_param_filter(PROC_FILTER_HIGH_PASS,
                 channel_selected, GET_FILTER_GAIN));
-    HighCutGain->setNotchTarget(10.0);
+    HighCutGain->setNotchTarget(20.0);
     HighCutGain->setNotchesVisible(true);
     HighCutGain->setToolTip("<html><head/><body><p>High Cut Filter Gain</p>"
                                      "<p>of the current channel</p></body></html>");
@@ -644,14 +663,14 @@ void FluidDialog::tab_MainVolume(QDialog */*FluidDialog*/){
     label_high_disp2->setFrameShadow(QFrame::Raised);
     label_high_disp2->setAlignment(Qt::AlignCenter);
 
-    HighCutFreq = new QDial(HighCutBox);
+    HighCutFreq = new QDialE(HighCutBox, QDIALE_GRAY_NOTCH_WHITEDOT, 10);
     HighCutFreq->setObjectName(QString::fromUtf8("HighCutFreq"));
     HighCutFreq->setGeometry(QRect(60, 41, 50, 71));
     HighCutFreq->setMinimum(500);
     HighCutFreq->setMaximum(5000);
     HighCutFreq->setValue(fluid_output->get_param_filter(PROC_FILTER_HIGH_PASS,
                                                         channel_selected, GET_FILTER_FREQ));
-    HighCutFreq->setNotchTarget(50.0);
+    HighCutFreq->setNotchTarget(400.0);
     HighCutFreq->setNotchesVisible(true);
     HighCutFreq->setToolTip("<html><head/><body><p>High Cut Filter Frequency</p>"
                               "<p>of the current channel</p></body></html>");
@@ -664,14 +683,14 @@ void FluidDialog::tab_MainVolume(QDialog */*FluidDialog*/){
     label_high_disp3->setFrameShadow(QFrame::Raised);
     label_high_disp3->setAlignment(Qt::AlignCenter);
 
-    HighCutRes = new QDial(HighCutBox);
+    HighCutRes = new QDialE(HighCutBox, QDIALE_GRAY_NOTCH_WHITEDOT, 10);
     HighCutRes->setObjectName(QString::fromUtf8("HighCutRes"));
     HighCutRes->setGeometry(QRect(60+57, 41, 50, 71));
     HighCutRes->setMinimum(0);
     HighCutRes->setMaximum(250);
     HighCutRes->setValue(fluid_output->get_param_filter(PROC_FILTER_HIGH_PASS,
                                                         channel_selected, GET_FILTER_RES));
-    HighCutRes->setNotchTarget(14.0);
+    HighCutRes->setNotchTarget(28.0);
     HighCutRes->setNotchesVisible(true);
     HighCutRes->setToolTip("<html><head/><body><p>High Cut Filter Resonance</p>"
                                                  "<p>of the current channel</p></body></html>");
@@ -736,17 +755,16 @@ void FluidDialog::tab_MainVolume(QDialog */*FluidDialog*/){
     label_trem_disp->setFrameShadow(QFrame::Raised);
     label_trem_disp->setAlignment(Qt::AlignCenter);
 
-    TremoloLevel = new QDial(TremoloBox);
+    TremoloLevel = new QDialE(TremoloBox, QDIALE_GRAY_NOTCH_WHITEDOT, 10);
     TremoloLevel->setObjectName(QString::fromUtf8("TremoloLevel"));
     TremoloLevel->setGeometry(QRect(3, 41, 50, 71));
     TremoloLevel->setMinimum(0);
     TremoloLevel->setMaximum(50);
     TremoloLevel->setValue((int) (100.0f * fluid_output->level_WaveModulator[channel_selected]));
-    TremoloLevel->setNotchTarget(2.0);
+    TremoloLevel->setNotchTarget(4.0);
     TremoloLevel->setNotchesVisible(true);
     TremoloLevel->setToolTip("<html><head/><body><p>Tremolo Level</p>"
                                      "<p>of the current channel</p></body></html>");
-
 
     label_trem_disp2 = new QLabel(TremoloBox);
     label_trem_disp2->setObjectName(QString::fromUtf8("label_trem_disp2"));
@@ -755,13 +773,13 @@ void FluidDialog::tab_MainVolume(QDialog */*FluidDialog*/){
     label_trem_disp2->setFrameShadow(QFrame::Raised);
     label_trem_disp2->setAlignment(Qt::AlignCenter);
 
-    TremoloFreq = new QDial(TremoloBox);
+    TremoloFreq = new QDialE(TremoloBox, QDIALE_GRAY_NOTCH_WHITEDOT, 10);
     TremoloFreq->setObjectName(QString::fromUtf8("TremoloFreq"));
     TremoloFreq->setGeometry(QRect(60, 41, 50, 71));
     TremoloFreq->setMinimum(10);
     TremoloFreq->setMaximum(1500);
     TremoloFreq->setValue((int) (100.0f * fluid_output->freq_WaveModulator[channel_selected]));
-    TremoloFreq->setNotchTarget(50.0);
+    TremoloFreq->setNotchTarget(100.0);
     TremoloFreq->setNotchesVisible(true);
     TremoloFreq->setToolTip("<html><head/><body><p>Tremolo Frequency Frequency</p>"
                               "<p>of the current channel</p></body></html>");
@@ -775,9 +793,17 @@ void FluidDialog::tab_MainVolume(QDialog */*FluidDialog*/){
     label_trem_disp->setText(QString().setNum(((float)(100.0f * fluid_output->level_WaveModulator[channel_selected])/100.0), 'f', 2));
     label_trem_disp2->setText(QString().setNum(((float) TremoloFreq->value())/100, 'f', 2));
 
-    QPushButton *g = new QPushButton(groupE);
-    g->setObjectName(QString::fromUtf8("g false button"));
-    g->setGeometry(QRect(lowbox +125, 4 + 6, 161+70, 128 - 8));
+    ///////////////////////////v
+    // see
+    /*
+    QGroupBox *groupV = new QGroupBox(MainVolume);
+    groupV->setObjectName(QString::fromUtf8("groupV"));
+    groupV->setGeometry(QRect(590+50 + 125 + expX - 16 + NEWDESP, 15, 125, area_size_y));
+    */
+    QPushButton *g = new QPushButton(MainVolume/*groupE*/);
+
+    g->setGeometry(QRect(590+50 + 125 + expX - 18, area_size_y - 120 + 16 , 129 + NEWDESP , 120));
+    //g->setGeometry(QRect(lowbox +125, 4 + 6, 161+70, 128 - 8));
     g->setLayoutDirection(Qt::LeftToRight);
     g->setFlat(false);
 
@@ -788,25 +814,261 @@ void FluidDialog::tab_MainVolume(QDialog */*FluidDialog*/){
         QPainter pixPaint(&pix);
         QPixmap p1(":/run_environment/graphics/custom/Midicustom.png");
         QPixmap p2(":/run_environment/graphics/icon.png");
-        p2 =  p2.scaled(60, 60);
-        p1 =  p1.scaled(184, 60);
-    //#e0e0c0  #c0c0a0
+        p2 =  p2.scaled(45, 45);
+        p1 =  p1.scaled(/*184*/127 + 30, 60);
+
         pix.fill(QColor(0xc0c0a0));
-        pixPaint.drawPixmap(6, 10 + 20, p2);
-        pixPaint.drawPixmap(54, 0 + 20, p1);
+        pixPaint.drawPixmap(20, 10 + 20, p2);
+        pixPaint.drawPixmap(58, 0 + 20, p1);
     }
+
     QIcon ico(pix);
 
     g->setIcon(ico);
     g->setIconSize(QSize(161+70, 128));
 
+    //////////////////&&
 
+    LeslieBox = new QGroupBox(groupE);
+    LeslieBox->setObjectName(QString::fromUtf8("LeslieBox"));
+    //lowbox+= 185;
+    //lowbox+= 185;
+    //TremoloBox->setGeometry(QRect(lowbox, 4, 114, 127));
+    LeslieBox->setGeometry(QRect(lowbox + 124, 4, 174 * 2 - 57, 127));
+    LeslieBox->setLayoutDirection(Qt::LeftToRight);
+    LeslieBox->setAlignment(Qt::AlignCenter);
+    LeslieBox->setFlat(false);
+    LeslieBox->setTitle("Leslie Effect");
+
+    label_leslie_deepB = new QLabel(LeslieBox);
+    label_leslie_deepB->setObjectName(QString::fromUtf8("label_leslie_deepB"));
+    label_leslie_deepB->setGeometry(QRect(12, 35, 31, 16));
+    label_leslie_deepB->setAlignment(Qt::AlignCenter);
+    label_leslie_deepB->setToolTip("<html><head/><body><p>Leslie Bass Deep Level</p>"
+                                "<p>of the current channel</p></body></html>");
+    label_leslie_deepB->setText("Deep");
+
+    label_leslie_rotationB = new QLabel(LeslieBox);
+    label_leslie_rotationB->setObjectName(QString::fromUtf8("label_leslie_rotationB"));
+    label_leslie_rotationB->setGeometry(QRect(69, 35, 31, 16));
+    //label_leslie_rotationB->setGeometry(QRect(69+57, 35, 31, 16));
+    label_leslie_rotationB->setAlignment(Qt::AlignCenter);
+    label_leslie_rotationB->setToolTip("<html><head/><body><p>Leslie Bass Rotation</p>"
+                               "<p>of the current channel</p></body></html>");
+    label_leslie_rotationB->setText("Rotat");
+
+    label_leslie_dispB = new QLabel(LeslieBox);
+    label_leslie_dispB->setObjectName(QString::fromUtf8("label_leslie_dispB"));
+    label_leslie_dispB->setGeometry(QRect(12, 100, 33, 21));
+    label_leslie_dispB->setFrameShape(QFrame::Box);
+    label_leslie_dispB->setFrameShadow(QFrame::Raised);
+    label_leslie_dispB->setAlignment(Qt::AlignCenter);
+    label_leslie_dispB->setText(QString().setNum(VST_proc::leslie[channel_selected].depthBass * 2.0f, 'f', 2));
+
+    LeslieDeepB = new QDialE(LeslieBox, QDIALE_GRAY_NOTCH_WHITEDOT, 10);
+    LeslieDeepB->setObjectName(QString::fromUtf8("LeslieDeepB"));
+    LeslieDeepB->setGeometry(QRect(3, 41, 50, 71));
+    LeslieDeepB->setMinimum(0);
+    LeslieDeepB->setMaximum(100);
+    LeslieDeepB->setValue(VST_proc::leslie[channel_selected].depthBass * 200.0f);
+
+    connect(LeslieDeepB, QOverload<int>::of(&QDialE::valueChanged), [=](int num)
+    {
+        label_leslie_dispB->setText(QString().setNum(((float)(num / 10)/10.0), 'f', 2));
+        VST_proc::leslie[channel_selected].depthBass = ((float) num) / 200.0f;
+    });
+
+    LeslieDeepB->setNotchTarget(10.0);
+    LeslieDeepB->setNotchesVisible(true);
+    LeslieDeepB->setToolTip("<html><head/><body><p>Leslie Bass Deep Level</p>"
+                            "<p>of the current channel</p></body></html>");
+
+    label_leslie_dispB3 = new QLabel(LeslieBox);
+    label_leslie_dispB3->setObjectName(QString::fromUtf8("label_leslie_dispB3"));
+    label_leslie_dispB3->setGeometry(QRect(69, 100, 33, 21));
+    //label_leslie_dispB3->setGeometry(QRect(69+57, 100, 33, 21));
+    label_leslie_dispB3->setFrameShape(QFrame::Box);
+    label_leslie_dispB3->setFrameShadow(QFrame::Raised);
+    label_leslie_dispB3->setAlignment(Qt::AlignCenter);
+    label_leslie_dispB3->setText(QString().setNum((VST_proc::leslie[channel_selected].rotationSpeedBass), 'f', 2));
+
+    LeslieRotationB = new QDialE(LeslieBox, QDIALE_GRAY_NOTCH_WHITEDOT, 10);
+    LeslieRotationB->setObjectName(QString::fromUtf8("LeslieRotationB"));
+    LeslieRotationB->setGeometry(QRect(60, 41, 50, 71));
+    //LeslieRotationB->setGeometry(QRect(60+57, 41, 50, 71));
+    LeslieRotationB->setMinimum(1);
+    LeslieRotationB->setMaximum(200);
+    LeslieRotationB->setValue(VST_proc::leslie[channel_selected].rotationSpeedBass * 10.0f);
+    LeslieRotationB->setNotchTarget(14.0);
+    LeslieRotationB->setNotchesVisible(true);
+    LeslieRotationB->setToolTip("<html><head/><body><p>Leslie Bass Rotation</p>"
+                           "<p>of the current channel</p></body></html>");
+
+    connect(LeslieRotationB, QOverload<int>::of(&QDialE::valueChanged), [=](int num)
+    {
+        label_leslie_dispB3->setText(QString().setNum(((float)(num)/10.0), 'f', 2));
+        VST_proc::leslie[channel_selected].rotationSpeedBass = ((float) num) / 10.0f;
+    });
+
+    label_leslie_Bass = new QLabel(LeslieBox);
+    label_leslie_Bass->setObjectName(QString::fromUtf8("label_leslie_Bass"));
+    label_leslie_Bass->setGeometry(QRect(70 - 31, 18, 31, 16));
+    label_leslie_Bass->setAlignment(Qt::AlignCenter);
+    label_leslie_Bass->setToolTip("<html><head/><body><p>Leslie bass</p>"
+                                  "<p>of the current channel</p></body></html>");
+    label_leslie_Bass->setText("Bass");
 
     //&&
 
+    label_leslie_dispT2 = new QLabel(LeslieBox);
+    label_leslie_dispT2->setObjectName(QString::fromUtf8("label_leslie_dispT2"));
+    label_leslie_dispT2->setGeometry(QRect(69+57, 100, 33, 21));
+    //label_leslie_dispT2->setGeometry(QRect(174 + 69, 100, 33, 21));
+    label_leslie_dispT2->setFrameShape(QFrame::Box);
+    label_leslie_dispT2->setFrameShadow(QFrame::Raised);
+    label_leslie_dispT2->setAlignment(Qt::AlignCenter);
+    label_leslie_dispT2->setText(QString().setNum(VST_proc::leslie[channel_selected].frequency));
+
+    LeslieFreqT = new QDialE(LeslieBox, QDIALE_GRAY_NOTCH_WHITEDOT, 10);
+    LeslieFreqT->setObjectName(QString::fromUtf8("LeslieFreqT"));
+    LeslieFreqT->setGeometry(QRect(60+57, 41, 50, 71));
+    //LeslieFreqT->setGeometry(QRect(174 + 60, 41, 50, 71));
+    LeslieFreqT->setMinimum(20);
+    LeslieFreqT->setMaximum(5000);
+    LeslieFreqT->setValue(VST_proc::leslie[channel_selected].frequency);
+    LeslieFreqT->setNotchTarget(400.0);
+    LeslieFreqT->setNotchesVisible(true);
+    LeslieFreqT->setToolTip("<html><head/><body><p>Leslie Treble Frequency</p>"
+                            "<p>of the current channel</p></body></html>");
+
+    connect(LeslieFreqT, QOverload<int>::of(&QDialE::valueChanged), [=](int num)
+    {
+        label_leslie_dispT2->setText(QString().setNum(num));
+        VST_proc::leslie[channel_selected].frequency = ((float) num);
+    });
+
+    label_leslie_deepT = new QLabel(LeslieBox);
+    label_leslie_deepT->setObjectName(QString::fromUtf8("label_leslie_deepT"));
+    label_leslie_deepT->setGeometry(QRect(174 + 12, 35, 31, 16));
+    label_leslie_deepT->setAlignment(Qt::AlignCenter);
+    label_leslie_deepT->setToolTip("<html><head/><body><p>Leslie Treble Deep Level</p>"
+                                   "<p>of the current channel</p></body></html>");
+    label_leslie_deepT->setText("Deep");
+
+    label_leslie_freqT = new QLabel(LeslieBox);
+    label_leslie_freqT->setObjectName(QString::fromUtf8("label_leslie_freqT"));
+
+    label_leslie_freqT->setGeometry(QRect(69+57, 35, 31, 16));
+    //label_leslie_freqT->setGeometry(QRect(174 + 69, 35, 31, 16));
+    label_leslie_freqT->setAlignment(Qt::AlignCenter);
+    label_leslie_freqT->setToolTip("<html><head/><body><p>Leslie Treble Frequency</p>"
+                                   "<p>of the current channel</p></body></html>");
+    label_leslie_freqT->setText("Freq");
+
+    label_leslie_rotationT = new QLabel(LeslieBox);
+    label_leslie_rotationT->setObjectName(QString::fromUtf8("label_leslie_rotationT"));
+    label_leslie_rotationT->setGeometry(QRect(174 + 69, 35, 31, 16));
+    //label_leslie_rotationT->setGeometry(QRect(174 + 69+57, 35, 31, 16));
+    label_leslie_rotationT->setAlignment(Qt::AlignCenter);
+    label_leslie_rotationT->setToolTip("<html><head/><body><p>Leslie Treble Rotation</p>"
+                                       "<p>of the current channel</p></body></html>");
+    label_leslie_rotationT->setText("Rotat");
+
+    label_leslie_dispT = new QLabel(LeslieBox);
+    label_leslie_dispT->setObjectName(QString::fromUtf8("label_leslie_dispT"));
+    label_leslie_dispT->setGeometry(QRect(174 + 12, 100, 33, 21));
+    label_leslie_dispT->setFrameShape(QFrame::Box);
+    label_leslie_dispT->setFrameShadow(QFrame::Raised);
+    label_leslie_dispT->setAlignment(Qt::AlignCenter);
+    label_leslie_dispT->setText(QString().setNum(VST_proc::leslie[channel_selected].depthTreble * 2.0f, 'f', 2));
+
+    LeslieDeepT = new QDialE(LeslieBox, QDIALE_GRAY_NOTCH_WHITEDOT, 10);
+    LeslieDeepT->setObjectName(QString::fromUtf8("LeslieDeepT"));
+    LeslieDeepT->setGeometry(QRect(174 + 3, 41, 50, 71));
+    LeslieDeepT->setMinimum(0);
+    LeslieDeepT->setMaximum(100);
+    LeslieDeepT->setValue(VST_proc::leslie[channel_selected].depthTreble * 200.0f);
+
+    connect(LeslieDeepT, QOverload<int>::of(&QDialE::valueChanged), [=](int num)
+    {
+        label_leslie_dispT->setText(QString().setNum(((float)(num / 10)/10.0), 'f', 2));
+        VST_proc::leslie[channel_selected].depthTreble = ((float) num) / 200.0f;
+    });
+
+    LeslieDeepT->setNotchTarget(10.0);
+    LeslieDeepT->setNotchesVisible(true);
+    LeslieDeepT->setToolTip("<html><head/><body><p>Leslie Treble Deep Level</p>"
+                            "<p>of the current channel</p></body></html>");
+
+// mover
+
+    label_leslie_dispT3 = new QLabel(LeslieBox);
+    label_leslie_dispT3->setObjectName(QString::fromUtf8("label_leslie_dispT3"));
+    label_leslie_dispT3->setGeometry(QRect(174 + 69, 100, 33, 21));
+    //label_leslie_dispT3->setGeometry(QRect(174 + 69+57, 100, 33, 21));
+    label_leslie_dispT3->setFrameShape(QFrame::Box);
+    label_leslie_dispT3->setFrameShadow(QFrame::Raised);
+    label_leslie_dispT3->setAlignment(Qt::AlignCenter);
+    label_leslie_dispT3->setText(QString().setNum((VST_proc::leslie[channel_selected].rotationSpeedTreble), 'f', 2));
+
+    LeslieRotationT = new QDialE(LeslieBox, QDIALE_GRAY_NOTCH_WHITEDOT, 10);
+    LeslieRotationT->setObjectName(QString::fromUtf8("LeslieRotationT"));
+    LeslieRotationT->setGeometry(QRect(174 + 60, 41, 50, 71));
+    //LeslieRotationT->setGeometry(QRect(174 + 60+57, 41, 50, 71));
+    LeslieRotationT->setMinimum(1);
+    LeslieRotationT->setMaximum(200);
+    LeslieRotationT->setValue(VST_proc::leslie[channel_selected].rotationSpeedTreble * 10.0f);
+    LeslieRotationT->setNotchTarget(14.0);
+    LeslieRotationT->setNotchesVisible(true);
+    LeslieRotationT->setToolTip("<html><head/><body><p>Leslie Treble Rotation</p>"
+                                "<p>of the current channel</p></body></html>");
+
+    connect(LeslieRotationT, QOverload<int>::of(&QDialE::valueChanged), [=](int num)
+    {
+        label_leslie_dispT3->setText(QString().setNum(((float)(num)/10.0), 'f', 2));
+        VST_proc::leslie[channel_selected].rotationSpeedTreble = ((float) num) / 10.0f;
+    });
+
+    label_leslie_Treble = new QLabel(LeslieBox);
+    label_leslie_Treble->setObjectName(QString::fromUtf8("label_leslie_Treble"));
+    label_leslie_Treble->setGeometry(QRect(174 + 70 - 57 + 24, 18, 31, 16));
+    label_leslie_Treble->setAlignment(Qt::AlignCenter);
+    label_leslie_Treble->setToolTip("<html><head/><body><p>Leslie Treble</p>"
+                                  "<p>of the current channel</p></body></html>");
+    label_leslie_Treble->setText("Treble");
+
+    //&&
+
+    LeslieButton = new QPushButton(LeslieBox);
+    LeslieButton->setObjectName(QString::fromUtf8("LeslieButton"));
+    LeslieButton->setGeometry(QRect(174 - 16 - 64/2, 18, 29, 16));
+    LeslieButton->setCheckable(true);
+    LeslieButton->setAutoDefault(false);
+    LeslieButton->setDefault(true);
+    LeslieButton->setChecked((VST_proc::leslieON[channel_selected]) ? true : false);
+    LeslieButton->setToolTip("<html><head/><body><p>Leslie Amp On/Off</p>"
+                              "<p>of the current channel</p></body></html>");
+    LeslieButton->setText(QString());
+    LeslieButton->setStyleSheet(QString::fromUtf8(
+        "QPushButton{\n"
+        "background-image: url(:/run_environment/graphics/fluid/icon_button_off.png);\n"
+        "background-position: center center;}\n"
+        "QPushButton::checked {\n"
+        "background-image: url(:/run_environment/graphics/fluid/icon_button_on.png);\n"
+        "}"));
+
+    connect(LeslieButton, QOverload<bool>::of(&QPushButton::clicked), [=](bool)
+    {
+        VST_proc::leslieON[channel_selected]^=true;
+    });
+
+
+    /////////////////&&&DE
+
+
     PresetBox = new QGroupBox(groupE);
     PresetBox->setObjectName(QString::fromUtf8("PresetBox"));
-    lowbox+= 125 + expX;
+    lowbox+= 125 + expX + NEWDESP;
     PresetBox->setGeometry(QRect(lowbox, 4, 161+70, 128));
     PresetBox->setLayoutDirection(Qt::LeftToRight);
     PresetBox->setAlignment(Qt::AlignCenter);
@@ -931,18 +1193,18 @@ void FluidDialog::tab_MainVolume(QDialog */*FluidDialog*/){
 
         });
 
-        connect(ChanVol[n], QOverload<int>::of(&QDial::valueChanged), [=](int num)
+        connect(ChanVol[n], QOverload<int>::of(&QSliderE::valueChanged), [=](int num)
         {
             fluid_output->setSynthChanVolume(n, num*127/100);
         });
 
-        connect(BalanceSlider[n], QOverload<int>::of(&QDial::valueChanged), [=](int num)
+        connect(BalanceSlider[n], QOverload<int>::of(&QSliderE::valueChanged), [=](int num)
         {
             BalanceLabel[n]->setText(QString().setNum(((float)(num / 10)/10.0), 'f', 2));
             fluid_output->setAudioBalance(n, num);
         });
 
-        connect(chanGain[n], QOverload<int>::of(&QDial::valueChanged), [=](int num)
+        connect(chanGain[n], QOverload<int>::of(&QDialE::valueChanged), [=](int num)
         {
             chanGainLabel[n]->setText(QString().setNum(((float)(num / 10))/10.0, 'f', 2));
             fluid_output->setAudioGain(n, num);
@@ -951,7 +1213,7 @@ void FluidDialog::tab_MainVolume(QDialog */*FluidDialog*/){
 
     }
 
-    connect(MainVol, QOverload<int>::of(&QDial::valueChanged), [=](int num)
+    connect(MainVol, QOverload<int>::of(&QSliderE::valueChanged), [=](int num)
     {
         MainVolVal->setText(QString::number(((double) num)/100, 'f', 2));
 
@@ -962,13 +1224,13 @@ void FluidDialog::tab_MainVolume(QDialog */*FluidDialog*/){
     // effects
     QObject::connect(DistortionGain, SIGNAL(valueChanged(int)), label_distortion_disp, SLOT(setNum(int)));
     QObject::connect(LowCutFreq, SIGNAL(valueChanged(int)), label_low_disp2, SLOT(setNum(int)));
-    connect(LowCutGain, QOverload<int>::of(&QDial::valueChanged), [=](int num)
+    connect(LowCutGain, QOverload<int>::of(&QDialE::valueChanged), [=](int num)
     {
         label_low_disp->setText(QString().setNum(((float)(num / 10)/10.0), 'f', 2));
 
     });
 
-    connect(LowCutRes, QOverload<int>::of(&QDial::valueChanged), [=](int num)
+    connect(LowCutRes, QOverload<int>::of(&QDialE::valueChanged), [=](int num)
     {
         label_low_disp3->setText(QString().setNum(((float)(num / 10)/10.0), 'f', 2));
 
@@ -976,26 +1238,26 @@ void FluidDialog::tab_MainVolume(QDialog */*FluidDialog*/){
 
     QObject::connect(HighCutFreq, SIGNAL(valueChanged(int)), label_high_disp2, SLOT(setNum(int)));
 
-    connect(HighCutGain, QOverload<int>::of(&QDial::valueChanged), [=](int num)
+    connect(HighCutGain, QOverload<int>::of(&QDialE::valueChanged), [=](int num)
     {
         label_high_disp->setText(QString().setNum(((float)(num / 10)/10.0), 'f', 2));
 
     });
 
-    connect(HighCutRes, QOverload<int>::of(&QDial::valueChanged), [=](int num)
+    connect(HighCutRes, QOverload<int>::of(&QDialE::valueChanged), [=](int num)
     {
         label_high_disp3->setText(QString().setNum(((float)(num / 10)/10.0), 'f', 2));
 
     });
 
-    connect(TremoloLevel, QOverload<int>::of(&QDial::valueChanged), [=](int num)
+    connect(TremoloLevel, QOverload<int>::of(&QDialE::valueChanged), [=](int num)
     {
         label_trem_disp->setText(QString().setNum(((float)(num)/100.0), 'f', 2));
         fluid_output->level_WaveModulator[channel_selected] = ((float) num) / 100.0f;
 
     });
 
-    connect(TremoloFreq, QOverload<int>::of(&QDial::valueChanged), [=](int num)
+    connect(TremoloFreq, QOverload<int>::of(&QDialE::valueChanged), [=](int num)
     {
         label_trem_disp2->setText(QString().setNum(((float)(num)/100.0), 'f', 2));
         fluid_output->freq_WaveModulator[channel_selected] = ((float) num) / 100.0f;
@@ -1027,9 +1289,21 @@ void FluidDialog::tab_MainVolume(QDialog */*FluidDialog*/){
 
         labelChan->setText(QString("Chan ")+QString().setNum(num2));
 
-        groupChan[old]->setStyleSheet(QString::fromUtf8("background-color: #80103040;"));
+        groupChan[old]->setStyleSheet(QString::fromUtf8("QGroupBox {background-color: #80103040;}\n") + groupIndicator);
         channel_selected = num + (channel_selected/16) * 16;
-        groupChan[channel_selected]->setStyleSheet(QString::fromUtf8("background-color: #80303060;"));
+        groupChan[channel_selected]->setStyleSheet(QString::fromUtf8("QGroupBox {background-color: #80303060;}\n") + groupIndicator);
+
+        label_leslie_dispB->setText(QString().setNum(VST_proc::leslie[channel_selected].depthBass * 2.0f, 'f', 2));
+        LeslieDeepB->setValue(VST_proc::leslie[channel_selected].depthBass * 200.0f);
+        label_leslie_dispB3->setText(QString().setNum((VST_proc::leslie[channel_selected].rotationSpeedBass), 'f', 2));
+        LeslieRotationB->setValue(VST_proc::leslie[channel_selected].rotationSpeedBass * 10.0f);
+        label_leslie_dispT->setText(QString().setNum(VST_proc::leslie[channel_selected].depthTreble * 2.0f, 'f', 2));
+        LeslieDeepT->setValue(VST_proc::leslie[channel_selected].depthTreble * 200.0f);
+        label_leslie_dispT2->setText(QString().setNum(VST_proc::leslie[channel_selected].frequency));
+        LeslieFreqT->setValue(VST_proc::leslie[channel_selected].frequency);
+        label_leslie_dispT3->setText(QString().setNum((VST_proc::leslie[channel_selected].rotationSpeedTreble), 'f', 2));
+        LeslieRotationT->setValue(VST_proc::leslie[channel_selected].rotationSpeedTreble * 10.0f);
+        LeslieButton->setChecked((VST_proc::leslieON[channel_selected]) ? true : false);
 
         DistortionGain->setValue(
                     fluid_output->get_param_filter(PROC_FILTER_DISTORTION,
@@ -1104,7 +1378,7 @@ void FluidDialog::tab_MainVolume(QDialog */*FluidDialog*/){
     });
 
     // scroll
-    connect(scrollArea->horizontalScrollBar(), QOverload<int>::of(&QDial::valueChanged), [=](int num)
+    connect(scrollArea->horizontalScrollBar(), QOverload<int>::of(&QDialE::valueChanged), [=](int num)
     {
         groupM->setGeometry(QRect(-num*58/16, 0, 3000, 600));
     });
@@ -1119,9 +1393,9 @@ void FluidDialog::mousePressEvent(QMouseEvent* /*event*/) {
 
     for(int n= 0; n < SYNTH_CHANS; n++) {
         if(groupChan[n]->hasFocus()) {
-            groupChan[channel_selected]->setStyleSheet(QString::fromUtf8("background-color: #80103040;"));
+            groupChan[channel_selected]->setStyleSheet(QString::fromUtf8("QGroupBox {background-color: #80103040;}\n") + groupIndicator);
             channel_selected = n;
-            groupChan[n]->setStyleSheet(QString::fromUtf8("background-color: #80303060;"));
+            groupChan[n]->setStyleSheet(QString::fromUtf8("QGroupBox {background-color: #80303060;}\n") + groupIndicator);
 
             block_scroll = true;
             spinChan->setValue(n);
@@ -1376,7 +1650,7 @@ void FluidDialog::StorePressets() // store or delete
 
     char id[4]=
     {0x10, 0x66, 0x66, 'R'};
-    int entries = 15 * SYNTH_CHANS + 1;
+    int entries = 21 * SYNTH_CHANS + 1;
     int BOOL;
 
     MainWindow *MWin = ((MainWindow *) _parent); // get MainWindow :D
@@ -1418,6 +1692,13 @@ void FluidDialog::StorePressets() // store or delete
         encode_sys_format(qd, (void *) &fluid_output->level_WaveModulator[n]);
         encode_sys_format(qd, (void *) &fluid_output->freq_WaveModulator[n]);
 
+        // Leslie effect
+        encode_sys_format(qd, (void *) &VST_proc::leslieON[n]);
+        encode_sys_format(qd, (void *) &VST_proc::VST_proc::leslie[n].depthBass);
+        encode_sys_format(qd, (void *) &VST_proc::VST_proc::leslie[n].depthTreble);
+        encode_sys_format(qd, (void *) &VST_proc::VST_proc::leslie[n].frequency);
+        encode_sys_format(qd, (void *) &VST_proc::VST_proc::leslie[n].rotationSpeedBass);
+        encode_sys_format(qd, (void *) &VST_proc::VST_proc::leslie[n].rotationSpeedTreble);
     }
 
     if(_save_mode) {
@@ -1517,7 +1798,10 @@ void FluidDialog::LoadPressets()
             return;
         }
 
-        if((found == 1 && entries != 13 * 16 + 1) &&
+        if(found == 2 && (entries == (21 * SYNTH_CHANS + 1)))
+            found = 3;
+
+        if(found !=3 && (found == 1 && entries != 13 * 16 + 1) &&
                 (found == 2 && entries != (15 * 16 + 1) && entries != (15 * SYNTH_CHANS + 1))) {
 
             return;
@@ -1525,7 +1809,7 @@ void FluidDialog::LoadPressets()
 
         int nchan = 16;
 
-        if(entries == (15 * SYNTH_CHANS + 1))
+        if(entries == (15 * SYNTH_CHANS + 1) || entries == (21 * SYNTH_CHANS + 1))
             nchan = SYNTH_CHANS;
 
         for(int n = 0; n < nchan; n++) {
@@ -1555,17 +1839,43 @@ void FluidDialog::LoadPressets()
             decode_sys_format(qd, (void *) &fluid_output->filter_hicut_gain[n]);
             decode_sys_format(qd, (void *) &fluid_output->filter_hicut_res[n]);
 
-            if(found == 2) {
+            if(found == 3) {
+
                 decode_sys_format(qd, (void *) &fluid_output->level_WaveModulator[n]);
                 decode_sys_format(qd, (void *) &fluid_output->freq_WaveModulator[n]);
+
+                decode_sys_format(qd, (void *) &VST_proc::leslieON[n]);
+                decode_sys_format(qd, (void *) &VST_proc::VST_proc::leslie[n].depthBass);
+                decode_sys_format(qd, (void *) &VST_proc::VST_proc::leslie[n].depthTreble);
+                decode_sys_format(qd, (void *) &VST_proc::VST_proc::leslie[n].frequency);
+                decode_sys_format(qd, (void *) &VST_proc::VST_proc::leslie[n].rotationSpeedBass);
+                decode_sys_format(qd, (void *) &VST_proc::VST_proc::leslie[n].rotationSpeedTreble);
+
+            } else if(found == 2) {
+
+                decode_sys_format(qd, (void *) &fluid_output->level_WaveModulator[n]);
+                decode_sys_format(qd, (void *) &fluid_output->freq_WaveModulator[n]);
+
             } else {
+
                 fluid_output->level_WaveModulator[n] = 0.0f;
                 fluid_output->freq_WaveModulator[n] = 0.0f;
+
             }
 
             ChanVol[n]->setValue(fluid_output->getSynthChanVolume(n)*100/127);
             BalanceSlider[n]->setValue(fluid_output->getAudioBalance(n));
             chanGain[n]->setValue(fluid_output->getAudioGain(n));
+
+            //Leslie effect
+            LeslieButton->setChecked((VST_proc::leslieON[n]) ? true : false);
+            LeslieDeepB->setValue(VST_proc::leslie[n].depthBass * 200.0f);
+            LeslieDeepT->setValue(VST_proc::leslie[n].depthTreble * 200.0f);
+            LeslieFreqT->setValue(VST_proc::leslie[n].frequency);
+            LeslieRotationB->setValue(VST_proc::leslie[n].rotationSpeedBass * 10.0f);
+            LeslieRotationT->setValue(VST_proc::leslie[n].rotationSpeedTreble * 10.0f);
+            emit changeVolBalanceGain(n, fluid_output->getSynthChanVolume(n)* 100 / 127,
+                                      fluid_output->getAudioBalance(n), fluid_output->getAudioGain(n));
         }
     }
 
@@ -1573,6 +1883,8 @@ void FluidDialog::LoadPressets()
     channel_selected=0;
     spinChan->valueChanged(channel_selected);
     update();
+
+    emit changeMainVolume(fluid_output->getSynthGain());
 }
 
 void FluidDialog::StoreSelectedPresset()
@@ -1581,7 +1893,7 @@ void FluidDialog::StoreSelectedPresset()
 
     char id[4]=
     {0x0, 0x66, 0x66, 0x70};
-    int entries = 15 * 1;
+    int entries = 21 * 1;
 
     int BOOL;
 
@@ -1627,6 +1939,14 @@ void FluidDialog::StoreSelectedPresset()
         // new WaveModulator
         encode_sys_format(qd, (void *) &fluid_output->level_WaveModulator[n]);
         encode_sys_format(qd, (void *) &fluid_output->freq_WaveModulator[n]);
+
+        //Leslie effect
+        encode_sys_format(qd, (void *) &VST_proc::leslieON[n]);
+        encode_sys_format(qd, (void *) &VST_proc::VST_proc::leslie[n].depthBass);
+        encode_sys_format(qd, (void *) &VST_proc::VST_proc::leslie[n].depthTreble);
+        encode_sys_format(qd, (void *) &VST_proc::VST_proc::leslie[n].frequency);
+        encode_sys_format(qd, (void *) &VST_proc::VST_proc::leslie[n].rotationSpeedBass);
+        encode_sys_format(qd, (void *) &VST_proc::VST_proc::leslie[n].rotationSpeedTreble);
 
     MWin->getFile()->track(0);
     SysExEvent *sys_event = new SysExEvent(16, b, MWin->getFile()->track(0));
@@ -1726,7 +2046,8 @@ void FluidDialog::LoadSelectedPresset(int current_tick)
                     continue;
                 }
 
-                if(flag == 3 && (entries != (15 * 16 + 1) && entries != (15 * SYNTH_CHANS + 1))) {
+                if(flag == 3 && (entries != (15 * 16 + 1) && entries != (15 * SYNTH_CHANS + 1)
+                    && entries != (21 * SYNTH_CHANS + 1))) {
                     QMessageBox::information(this, "Ehhh!", "entries differents");
                     continue;
                 }
@@ -1736,16 +2057,23 @@ void FluidDialog::LoadSelectedPresset(int current_tick)
                     continue;
                 }
 
-                if(flag != 3 && (n != 0 || flag == 1) && (entries != 13 && entries != 15)) {
+                if(flag != 3 && (n != 0 || flag == 1) && (entries != 13 && entries != 15 && entries != 21)) {
                     QMessageBox::information(this, "Ehhh!", "entries differents");
                     continue;
                 }
+
+                bool extend = false;
+
+                if(flag == 3 && (entries == (21 * SYNTH_CHANS + 1)))
+                    extend = true;
+                if(flag == 1 && entries == 21)
+                    extend = true;
 
                 for(int m = 0; m < bucle; m++) {
 
                     if(flag == 3) n = m;
 
-                    if(((flag == 2 || flag == 3) && n == 0) || flag == 1)
+                    if(((flag == 2 || flag == 3 ) && n == 0) || flag == 1)
                         decode_sys_format(qd, (void *) &fluid_output->synth_gain);
 
                     fluid_output->audio_chanmute[n]= false;
@@ -1770,17 +2098,40 @@ void FluidDialog::LoadSelectedPresset(int current_tick)
                     decode_sys_format(qd, (void *) &fluid_output->filter_hicut_gain[n]);
                     decode_sys_format(qd, (void *) &fluid_output->filter_hicut_res[n]);
 
-                    if(flag == 3 || (flag == 1 && entries == 15)) {
+                    if(flag == 3 || flag == 4 || (flag == 1 && (entries == 15 || entries == 21))) {
                         decode_sys_format(qd, (void *) &fluid_output->level_WaveModulator[n]);
                         decode_sys_format(qd, (void *) &fluid_output->freq_WaveModulator[n]);
+
+                        if(extend) {
+
+                            decode_sys_format(qd, (void *) &VST_proc::leslieON[n]);
+                            decode_sys_format(qd, (void *) &VST_proc::VST_proc::leslie[n].depthBass);
+                            decode_sys_format(qd, (void *) &VST_proc::VST_proc::leslie[n].depthTreble);
+                            decode_sys_format(qd, (void *) &VST_proc::VST_proc::leslie[n].frequency);
+                            decode_sys_format(qd, (void *) &VST_proc::VST_proc::leslie[n].rotationSpeedBass);
+                            decode_sys_format(qd, (void *) &VST_proc::VST_proc::leslie[n].rotationSpeedTreble);
+
+                        }
+
                     } else {
+
                         fluid_output->level_WaveModulator[n] = 0.0f;
                         fluid_output->freq_WaveModulator[n] = 0.0f;
+
                     }
 
                     ChanVol[n]->setValue(fluid_output->getSynthChanVolume(n)*100/127);
                     BalanceSlider[n]->setValue(fluid_output->getAudioBalance(n));
                     chanGain[n]->setValue(fluid_output->getAudioGain(n));
+
+                    //Leslie effect
+                    LeslieButton->setChecked((VST_proc::leslieON[n]) ? true : false);
+                    LeslieDeepB->setValue(VST_proc::leslie[n].depthBass * 200.0f);
+                    LeslieDeepT->setValue(VST_proc::leslie[n].depthTreble * 200.0f);
+                    LeslieFreqT->setValue(VST_proc::leslie[n].frequency);
+                    LeslieRotationB->setValue(VST_proc::leslie[n].rotationSpeedBass * 10.0f);
+                    LeslieRotationT->setValue(VST_proc::leslie[n].rotationSpeedTreble * 10.0f);
+
                 }
 
                 _edit_mode = 1;
@@ -1842,6 +2193,8 @@ void FluidDialog::ResetPresset() {
         chanGain[n]->setValue(fluid_output->getAudioGain(n));
 
     }
+
+    VST_proc::VST_LeslieReset();
 
     MainVol->setValue(fluid_output->getSynthGain());
     channel_selected=0;

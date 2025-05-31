@@ -557,7 +557,7 @@ void MatrixWidget::paintEvent(QPaintEvent* /*event*/)
         c.setAlpha(128);
         pixpainter->setBrush(QBrush(c, Qt::Dense4Pattern));
 
-        QMap<int, int>::iterator itx = listAreaSel.lowerBound(0);
+        QMultiMap<int, int>::iterator itx = listAreaSel.lowerBound(0);
 
         while (itx != listAreaSel.end()) {
 
@@ -754,7 +754,7 @@ void MatrixWidget::paintEvent(QPaintEvent* /*event*/)
         }
 
         for(m = 0; m <= n; m++) {
-            if(m < 8 && midi_text[m]) str+= midi_text[m];
+            if(m < 8 && midi_text[m]) str+= *midi_text[m];
         }
 
         QFontMetrics fm(font);
@@ -768,7 +768,7 @@ void MatrixWidget::paintEvent(QPaintEvent* /*event*/)
 
             if((n + 1) < 8) {
                 for(m = n + 1; m < 8; m++) {
-                    if(midi_text[m]) str2+= midi_text[m];
+                    if(midi_text[m]) str2+= *midi_text[m];
                 }
 
                 r2 = fm.boundingRect(str2);
@@ -872,7 +872,7 @@ void MatrixWidget::paintChannel(QPainter* painter, int channel, int view)
     if(this->shadow_selection)
     {
         QMultiMap<int, MidiEvent*>* map = file->channelEvents(channel);
-        QMap<int, MidiEvent*>::iterator it = map->lowerBound(0/*startTick*/);
+        QMultiMap<int, MidiEvent*>::iterator it = map->lowerBound(0/*startTick*/);
 
         while (it != map->end() && it.key() <= endTick) {
             MidiEvent* event = it.value();
@@ -950,13 +950,13 @@ void MatrixWidget::paintChannel(QPainter* painter, int channel, int view)
         }
 
         // reduce shadow background areas
-        QMap<int, int>::iterator itx = listAreaSel.lowerBound(0);
+        QMultiMap<int, int>::iterator itx = listAreaSel.lowerBound(0);
 
         while (itx != listAreaSel.end()) {
 
             int x = itx.key();
             int w = itx.value();
-            QMap<int, int>::iterator itx2 = listAreaSel.lowerBound(0);
+            QMultiMap<int, int>::iterator itx2 = listAreaSel.lowerBound(0);
             bool modified = false;
 
             while (itx2 != listAreaSel.end()) {
@@ -988,7 +988,7 @@ void MatrixWidget::paintChannel(QPainter* painter, int channel, int view)
     QMultiMap<int, MidiEvent*>* map = file->channelEvents(channel);
 
 
-    QMap<int, MidiEvent*>::iterator it = map->lowerBound(0/*startTick*/);
+    QMultiMap<int, MidiEvent*>::iterator it = map->lowerBound(0/*startTick*/);
     while (it != map->end() && it.key() <= endTick) {
         MidiEvent* event = it.value();
         SysExEvent* sys = dynamic_cast<SysExEvent*>(event);
@@ -1530,7 +1530,8 @@ void MatrixWidget::setFile(MidiFile* f)
         if(!map)
             continue;
 
-        QMap<int, MidiEvent*>::iterator it = map->lowerBound(0);
+        QMultiMap<int, MidiEvent*>::iterator it = map->lowerBound(0);
+
         while (it != map->end()) {
             NoteOnEvent* onev = dynamic_cast<NoteOnEvent*>(it.value());
             if (onev && eventInWidget(onev)) {
@@ -1594,8 +1595,16 @@ void MatrixWidget::mouseMoveEvent(QMouseEvent* event)
         return;
     }
 
+#ifdef IS_QT5
+    int Mx = event->position().x();
+    int My = event->position().y();
+#else
+    int Mx = event->position().x();
+    int My = event->position().y();
+#endif
+
     if (!MidiPlayer::isPlaying() && !MidiInput::recording() && Tool::currentTool()) {
-        Tool::currentTool()->move(event->x(), event->y());
+        Tool::currentTool()->move(Mx, My);
     }
 
     if (!MidiPlayer::isPlaying() && !MidiInput::recording()) {
@@ -1870,9 +1879,9 @@ void MatrixWidget::mousePressEvent(QMouseEvent* event)
        int tick = file->tick(msOfXPos(mouseX));
        int wtick = file->tick(msOfXPos(mouseX+16))-tick;
        int dtick= file->tick(150);
-
+#ifdef USE_FLUIDSYNTH
        int track_index2 = file->track(NewNoteTool::editTrack())->device_index();
-
+#endif
        foreach (MidiEvent* event2, *(file->eventsBetween(tick-dtick, tick+dtick))) {
 // Estwald Visible
            bool show = true;

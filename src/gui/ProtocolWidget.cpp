@@ -64,8 +64,9 @@ void ProtocolWidget::protocolChanged()
 
 void ProtocolWidget::update()
 {
-
+#ifdef USE_FLUIDSYNTH
     bool update_vst = false;
+#endif
     if (protocolHasChanged) {
 
         bool it_needs_save = false;

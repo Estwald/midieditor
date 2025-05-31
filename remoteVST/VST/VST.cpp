@@ -1242,7 +1242,12 @@ int VST_proc::VST_load(int chan, const QString pathModule) {
         VST_temp->needUpdate = false;
         VST_temp->needUpdateMix = true;
         VST_temp->vstPowerOn = false;
+
+#ifdef IS_QT5
         VST_temp->mux = new QMutex(QMutex::NonRecursive);
+#else
+        VST_temp->mux = new QMutex();
+#endif
 
         VST_preset_data[chan] = VST_temp;
 

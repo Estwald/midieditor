@@ -800,7 +800,7 @@ void PlayerSequencer::SendInput(QByteArray a)
     _device = DEVICE_SEQUENCER_ID + _chan;
     std::vector<unsigned char> v;
 
-    for(int n = 0; n < a.count(); n++)
+    for(int n = 0; n < a.length(); n++)
         v.emplace_back((unsigned char) a[n]);
 
     MidiInput::receiveMessage_mutex(MidiInput::currentTime(), &v, (void*) &_device);
@@ -862,7 +862,7 @@ void PlayerSequencer::loop(qint64 diff_t)
         note_random = -1;
     }
 
-    if(!autorhythm && current_index >= 0 && !(cmd & SEQ_FLAG_INFINITE) && !note_roll.count()) {
+    if(!autorhythm && current_index >= 0 && !(cmd & SEQ_FLAG_INFINITE) && !note_roll.length()) {
         position = -diff_t  * ((double) file[current_index]->scale_time_sequencer);
         flush();
     }
@@ -941,7 +941,7 @@ void PlayerSequencer::loop(qint64 diff_t)
 
     it = events[current_index]->lowerBound(position);
 
-    if(cmd && enabled >= 0 && (note_roll.count() || autorhythm))
+    if(cmd && enabled >= 0 && (note_roll.length() || autorhythm))
         // it = events->lowerBound(position);
         while (it != events[current_index]->end() && it.key() < newPos) {
 
@@ -1006,14 +1006,15 @@ void PlayerSequencer::loop(qint64 diff_t)
                 it++;
             } while (it != events[current_index]->end() && it.key() == sendPosition);
 
-                   // SysEx event
-            if(0)
-                foreach (MidiEvent* event, sysEv) {
+            // SysEx event
+#if 0
+// don't send!
+            foreach (MidiEvent* event, sysEv) {
 
-                    MidiOutput::sendCommand(event, 0);
-                }
-
-                   // CtrlEv event
+                MidiOutput::sendCommand(event, 0);
+            }
+#endif
+            // CtrlEv event
 
             foreach (MidiEvent* event, ctrlEv) {
 
@@ -1035,7 +1036,7 @@ void PlayerSequencer::loop(qint64 diff_t)
                 }
             }
 
-            if(!autorhythm && !note_roll.count()) {
+            if(!autorhythm && !note_roll.length()) {
                 send_flush = false;
                 flush();
 
@@ -1044,7 +1045,7 @@ void PlayerSequencer::loop(qint64 diff_t)
                 QByteArray a = ev->save();
                 int note = a[1] & 127;
                 if(ev->channel() == 0) {
-                    for(int n = 0; (!autorhythm && n < note_roll.count()) || (autorhythm && n < 1); n++) {
+                    for(int n = 0; (!autorhythm && n < note_roll.length()) || (autorhythm && n < 1); n++) {
                         int note2 = autorhythm ? 60 : (note_roll.at(n) & 127);
 
                         note2+= note - 60;
@@ -1074,7 +1075,7 @@ void PlayerSequencer::loop(qint64 diff_t)
                 flush();
             }
 
-            if(!autorhythm && !note_roll.count()) {
+            if(!autorhythm && !note_roll.length()) {
                 note_count = 0;
                 note_random = -1;
             } else {
@@ -1112,7 +1113,7 @@ void PlayerSequencer::loop(qint64 diff_t)
                         bool found = false;
                         int first_note =-1;
 
-                        for(int n = 0; (!autorhythm && n < note_roll.count()) || (autorhythm && n < 1); n++) {
+                        for(int n = 0; (!autorhythm && n < note_roll.length()) || (autorhythm && n < 1); n++) {
                             int note2 = autorhythm ? 60 : note_roll.at(n);
                             if(note2 == note_random) {
                                 found = true;

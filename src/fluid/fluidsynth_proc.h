@@ -27,9 +27,7 @@
 #include <QObject>
 #include <QThread>
 #include <QFile>
-#include <QAudioDeviceInfo>
-#include <QAudioInput>
-#include <QAudioOutput>
+#include "maudio.h"
 #include <QSettings>
 #include <QTime>
 
@@ -181,9 +179,7 @@ public:
 
     int sf2_id;
 
-    QAudioOutput *out_sound;
-    QIODevice * out_sound_io;
-    QAudioDeviceInfo current_sound;
+    MAudioDev * current_sound = NULL;
     int output_float;
     int fluid_out_samples; // size of samples loop buffer
 
@@ -233,6 +229,8 @@ public:
     QMutex lock_audio;
     QMutex mutex_fluid;
     QWaitCondition audio_waits;
+
+    static QObject *first;
 
 signals:
     void pause_player();
@@ -337,7 +335,9 @@ public:
     int PROC_get_type();
 
     void PROC_samples(float *left, float *right);
-
+#if defined(__SSE2__)
+    void PROC_samples_block(float *left, float *right, int nsamples);
+#endif
     void PROC_set_sample_rate(int freq) {
        _sample_rate = freq;
     };
@@ -368,18 +368,22 @@ private:
 
     int _type;
 
-
     float _distortion_tab[MAX_DIST_DEF+2];
     float _distortion_tab2[MAX_DIST_DEF+2];
 
 };
 
+/////////////////////////////////////////////////////////////////////
+// SSE2 functions
+/////////////////////////////////////////////////////////////////////
 
-// MICROPHONE
+extern bool using_SSE2;
 
-int read_header(QFile *f, int &size, int &sample_rate, int &bits, int &channels);
-void write_header(QFile *f, int size, int sample_rate, int bits, int channels);
+bool supportsSSE2();
 
+void convert_Clipping_1(float* f, short* buffer, int fluid_out_samples, float& addl, float& addr);
+
+void set_fbuff_volume(float vol, int nsamples, float *lbuf, float *rbuf, float *lvst, float *rvst);
 #endif // FLUID_FUNC_H
 
 #endif

@@ -90,7 +90,7 @@ void MidiOutput::update_config()
     if(AllTracksToOne) {
         FluidSynthTracksAuto = false;
     }
-
+#ifdef USE_FLUIDSYNTH
     if(MidiOutput::FluidSynthTracksAuto) {
 
         for(int n = 0; n < MAX_OUTPUT_DEVICES; n++) {
@@ -99,6 +99,7 @@ void MidiOutput::update_config()
 
         }
     }
+#endif
 }
 
 
@@ -355,6 +356,7 @@ bool MidiOutput::setOutputPort(QString name, int index)
     if(index < 0 || index >= MAX_OUTPUT_DEVICES || !_midiOut[index])
         return false;
 
+#ifdef USE_FLUIDSYNTH
     if(FluidDevice(name) >= 0) {
 
         try {
@@ -365,12 +367,13 @@ bool MidiOutput::setOutputPort(QString name, int index)
 
         if(!FluidSynthTracksAuto)
             _outPort[index] = name;
+
         _midiOutMAP[index] = -1;
         _midiOutFluidMAP[index] = FluidDevice(name);
 
         return true;
     }
-
+#endif
     // try to find the port
     unsigned int nPorts = _midiOut[index]->getPortCount();
 
@@ -386,8 +389,11 @@ bool MidiOutput::setOutputPort(QString name, int index)
 
                 _midiOut[index]->openPort(i);
 
+#ifdef USE_FLUIDSYNTH
                 if(!FluidSynthTracksAuto)
+#endif
                     _outPort[index] = name;
+
                 _midiOutMAP[index] = -666;
 
                 for(int n = 0; n < MAX_OUTPUT_DEVICES; n++) {
@@ -409,8 +415,11 @@ bool MidiOutput::setOutputPort(QString name, int index)
                     continue;
                 if(_midiOut[n] && _outPort[n] != "" && _outPort[n] == name) {
                    _midiOut[index]->closePort();
+#ifdef USE_FLUIDSYNTH
                     if(!FluidSynthTracksAuto)
+#endif
                         _outPort[index] = name;
+
                    _midiOutMAP[index] = n;
 
                    return true;
@@ -427,10 +436,10 @@ QString MidiOutput::outputPort(int index, bool force)
 {
     if(index < 0 || index >= MAX_OUTPUT_DEVICES)
         return "";
-
+#ifdef USE_FLUIDSYNTH
     if(!force && FluidSynthTracksAuto)
         return GetFluidDevice(index);
-
+#endif
     return _outPort[index];
 }
 

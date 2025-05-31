@@ -2794,7 +2794,7 @@ FingerPatternDialog::FingerPatternDialog(QWidget* parent, QSettings *settings, i
 
         pushButtonTestNoteDOWN = new QPushButton(fingerPatternDialog);
         pushButtonTestNoteDOWN->setObjectName(QString::fromUtf8("pushButtonTestNoteDOWN"));
-        pushButtonTestNoteDOWN->setGeometry(QRect(690, 470 + yy, 101, 41));
+        pushButtonTestNoteDOWN->setGeometry(QRect(690, 470 + yy, 121, 41));
         pushButtonTestNoteDOWN->setText("Test Pattern DOWN");
         TOOLTIP(pushButtonTestNoteDOWN, "Test Pattern Note DOWN");
 
@@ -3191,7 +3191,11 @@ FingerPatternDialog::FingerPatternDialog(QWidget* parent, QSettings *settings, i
 
         }
 
+#ifdef IS_QT5
         fingerMUX = new QMutex(QMutex::NonRecursive);
+#else
+        fingerMUX = new QMutex();
+#endif
 
         thread_timer = new finger_Thread();
         thread_timer->start(QThread::TimeCriticalPriority);

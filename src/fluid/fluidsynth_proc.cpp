@@ -52,6 +52,9 @@ int sys_mem() {
 }
 #endif
 
+
+QObject* fluidsynth_proc::first = nullptr;
+
 #define MSG_ERR qWarning
 #define MSG_OUT qDebug
 
@@ -185,6 +188,16 @@ int fluidsynth_proc::change_synth(int freq, int flag) {
                 }
             }
 
+#ifdef __WINDOWS_MM__
+
+            if(!sf2_name) {
+                if(QFile::exists("C:/WINDOWS/system32/drivers/gm.dls")) {
+                     sf2_name = new QString("C:/WINDOWS/system32/drivers/gm.dls");
+
+                }
+
+            }
+#endif
             if (sf2_name) {
 
                 MSG_OUT("changesynth: New Sound font %s\n", (const char *) sf2_name->toUtf8());
@@ -261,9 +274,6 @@ fluidsynth_proc::fluidsynth_proc()
     status_audio_err = 255;
     block_midi_events = 0;
 
-    out_sound = NULL;
-    out_sound_io = NULL;
-
     mixer = NULL;
 
     fluid_set_log_function(FLUID_WARN, 	(fluid_log_function_t )fluid_log_function, NULL);
@@ -322,11 +332,11 @@ fluidsynth_proc::fluidsynth_proc()
 
     }
 
-   // level_WaveModulator[1] = 0.5f;
-   // freq_WaveModulator[1] = 10.1f;
-
+    // inicio
     // audio device
 
+
+#if 0
     QString device_name;
     const QAudioDeviceInfo &defaultDeviceInfo = QAudioDeviceInfo::defaultOutputDevice();
 
@@ -414,7 +424,54 @@ fluidsynth_proc::fluidsynth_proc()
 
     current_sound = devices.at(def);
 
-    MSG_OUT("audio output:\n    sample_rate: %i use float %i\n", _sample_rate, output_float);
+#endif
+
+    QString device_name;
+
+    if (fluid_settings->value("Audio Device").toString() != "") {
+        device_name = fluid_settings->value("Audio Device").toString();
+    }
+
+    _sample_rate = fluid_settings->value("Audio Freq" , 44100).toInt();
+    _wave_sample_rate = fluid_settings->value("Wav Freq" , 44100).toInt();
+    fluid_out_samples = fluid_settings->value("Out Samples" , 512).toInt();
+    output_float = fluid_settings->value("Out use float" , 0).toInt();
+
+    MAudioDev param;
+    param.device_name = device_name;
+    param.sample_rate = _sample_rate;
+    param.is_float = output_float ? true : false;
+
+    if(current_sound)
+        delete current_sound;
+
+    current_sound = MAudio::MAudio_findDev(param);
+    if(!current_sound) {
+        MSG_ERR("ERROR: Creating Audio Device\n");
+        QMessageBox::critical(NULL, "Fluidsynth_proc Error", "Error creating Audio Device\n.");
+        return;
+    }
+
+    if(current_sound->err) {
+        delete current_sound;
+        current_sound = NULL;
+        MSG_ERR("ERROR: Audio Device not found\n");
+        QMessageBox::critical(NULL, "Fluidsynth_proc Error", "Audio Device not found\n.");
+        return;
+    }
+
+    // update from device
+    if(current_sound->is_float)
+        output_float = 1;
+    else
+        output_float = 0;
+
+    qWarning("is output_float %i", output_float);
+
+    _sample_rate = current_sound->sample_rate;
+    device_name = current_sound->device_name;
+
+    MSG_OUT("audio output:\n    sample_rate: %i use float %i - %s\n", _sample_rate, output_float, device_name.toLocal8Bit().constData());
 
     //for(int n = 0; n < 32; n++) // test if memory leak of fluid synth (version < 2.1.6)
     disabled = change_synth(_sample_rate, 0);
@@ -428,33 +485,21 @@ fluidsynth_proc::fluidsynth_proc()
             if(!disabled) fluid_synth_cc(synth, n , 11, synth_chanvolume[n]);         
         }
 
-        if(def >= 0)
-            out_sound= new QAudioOutput(devices.at(def), format);
+        fluidsynth_proc::first = this;
+        if(!status_fluid_err) {
+            qWarning("first fluid_Thread");
 
-        if(out_sound) {
-
-            out_sound_io = out_sound->start();
-
-            if(!out_sound_io) {
-                status_audio_err = 2;
-                MSG_ERR("FATAL ERROR: error in QAudioOutput()");
-            } else status_audio_err = 0;
-
-        } else {
-            status_audio_err = 1;
-            MSG_ERR("FATAL ERROR: error in QAudioOutput()");
-        }
-
-        if(!status_fluid_err)
             mixer = new fluid_Thread(this);
-        else
+        } else
             mixer = NULL;
 
         if(!mixer)  {
             status_fluid_err = 4;
             set_error(666, "FATAL ERROR: error creating fluid_Thread()"); return;
-        } else
+        } else {
             status_fluid_err = 0;
+        }
+
 
         mixer->start(QThread::TimeCriticalPriority);
 
@@ -522,13 +567,6 @@ fluidsynth_proc::~fluidsynth_proc()
     if(adriver) delete_fluid_audio_driver(adriver);
     if(synth) delete_fluid_synth(synth);
     if(settings) delete_fluid_settings(settings);
-
-    if(out_sound_io) out_sound_io->close();
-    if(out_sound) {
-        out_sound->stop();
-        out_sound->disconnect(this);
-        delete out_sound;
-    }
 
     if(sf2_name) delete sf2_name;
     if(fluid_settings) delete fluid_settings;
@@ -934,13 +972,14 @@ int fluidsynth_proc::SendMIDIEvent(QByteArray array, int track)
                     return 0;
                 }
 
-                if(flag == 3 && entries != 15 * SYNTH_CHANS + 1)
+                if(flag == 3 && entries != 15 * SYNTH_CHANS + 1 && entries != 21 * SYNTH_CHANS + 1)
                     bucle = SYNTH_CHANS;
 
-                if((flag == 1 && (entries != 13 && entries != 15)) ||
+                if((flag == 1 && (entries != 13 && entries != 15 && entries != 21)) ||
                         (flag == 2 && entries != 13 + (n == 0)) ||
                         (flag == 3 && entries != 15 * 16 + 1 &&
-                         entries != 15 * SYNTH_CHANS + 1)) {
+                         entries != 15 * SYNTH_CHANS + 1 &&
+                         entries != 21 * SYNTH_CHANS + 1)) {
                     return 0;
                 }
 
@@ -973,9 +1012,19 @@ int fluidsynth_proc::SendMIDIEvent(QByteArray array, int track)
                     decode_sys_format(qd, (void *) &filter_hicut_gain[n]);
                     decode_sys_format(qd, (void *) &filter_hicut_res[n]);
 
-                    if(flag == 3 || (flag == 1 && entries == 15)) {
+                    if(flag == 3 || (flag == 1 && (entries == 15 || entries == 21))) {
                         decode_sys_format(qd, (void *) &fluid_output->level_WaveModulator[n]);
                         decode_sys_format(qd, (void *) &fluid_output->freq_WaveModulator[n]);
+                        if(entries == 21 || entries == 21 * SYNTH_CHANS + 1) {
+
+                            decode_sys_format(qd, (void *) &VST_proc::leslieON[n]);
+                            decode_sys_format(qd, (void *) &VST_proc::VST_proc::leslie[n].depthBass);
+                            decode_sys_format(qd, (void *) &VST_proc::VST_proc::leslie[n].depthTreble);
+                            decode_sys_format(qd, (void *) &VST_proc::VST_proc::leslie[n].frequency);
+                            decode_sys_format(qd, (void *) &VST_proc::VST_proc::leslie[n].rotationSpeedBass);
+                            decode_sys_format(qd, (void *) &VST_proc::VST_proc::leslie[n].rotationSpeedTreble);
+                        }
+
                     } else {
                         fluid_output->level_WaveModulator[n] = 0.0f;
                         fluid_output->freq_WaveModulator[n] = 0.0f;
@@ -1067,18 +1116,21 @@ void fluidsynth_proc::new_sound_thread(int freq) {
         *p = 0;
         set_error(0, NULL);
 
-        mixer = new fluid_Thread(this);
+
+        qWarning("other fluid_Thread");
+        status_audio_err = 1;
+        mixer = new fluid_Thread((fluidsynth_proc *) fluidsynth_proc::first);
 
         if(!mixer)  {
             status_fluid_err = 4;
             set_error(666, "FATAL ERROR: error creating fluid_Thread()"); return;
-        }
-
-        if(out_sound && out_sound_io)
-            status_audio_err = 0;
+        } /*else
+            status_audio_err = 0;*/
 
         mixer->start(QThread::TimeCriticalPriority);
+
         int count = 0;
+
         while(*p != 555) {
             msDelay(5);
             count++;
@@ -1096,6 +1148,9 @@ void fluidsynth_proc::new_sound_thread(int freq) {
 }
 void fluidsynth_proc::stop_audio(bool stop) {
 
+    if(stop) qWarning("stop audio on");
+    else qWarning("stop audio off");
+
     if(stop) { // stops the audio loop
 
         block_midi_events = 1;
@@ -1112,7 +1167,7 @@ void fluidsynth_proc::stop_audio(bool stop) {
             while(*p != 2) {// waits to sound thread receives the signal
                 msDelay(5);
                 count++;
-                if(count > 400) {
+                if(count > 1000) {
                     ERROR_CRITICAL2("stop_audio() iswaiting_signal fail");
                     break;
                 }
@@ -1124,7 +1179,7 @@ void fluidsynth_proc::stop_audio(bool stop) {
             while(!mixer->isFinished()) {
                 msDelay(5);
                 count++;
-                if(count > 400) {
+                if(count > 1000) {
                     ERROR_CRITICAL2("stop_audio() mixer->isFinished fail");
                     break;
                 }
@@ -1299,6 +1354,32 @@ void fluid_Thread::run()
 
      int _count_samples = 0;
 
+     MAudioOutput *out_sound_t = NULL;
+     QIODevice *out_sound_io_t = NULL;
+
+#ifdef IS_QT5
+     QString realdevname = _proc->current_sound->device.deviceName();
+#else
+     QString realdevname = _proc->current_sound->device.description();
+#endif
+
+     _proc->status_audio_err = 1;
+     out_sound_t = MAudio::MAudio_CreateDev(_proc->current_sound);
+
+     if(out_sound_t) {
+
+         _proc->output_float = _proc->current_sound->is_float ? 1 : 0;
+         output_float = _proc->output_float;
+         out_sound_io_t = out_sound_t->start();
+
+         if(!out_sound_io_t) {
+            delete out_sound_t;
+            out_sound_t = NULL;
+            _proc->status_audio_err = 2;
+         } else
+            _proc->status_audio_err = 0;
+     }
+
      while(1) {
 
          if(_proc->_player_status == PLAYER_STATUS_WAV_END) {
@@ -1325,6 +1406,15 @@ void fluid_Thread::run()
          if((sharedAudioBuffer && sharedAudioBuffer->data() != fbuf) || (fluid_out_samples != _proc->fluid_out_samples)) {
 
              fluid_out_samples = _proc->fluid_out_samples;
+
+#ifndef IS_QT5
+
+             if(out_sound_t) {
+                out_sound_t->stop();
+                out_sound_t->setBufferSize((out_sound_t->format().bytesPerSample() * 2));
+                out_sound_io_t = out_sound_t->start();
+             }
+#endif
 
              if(sharedAudioBuffer && sharedAudioBuffer->data() != fbuf) {
                  free(fbuf);
@@ -1356,64 +1446,125 @@ void fluid_Thread::run()
 
          }
 
-         //if(!_float_is_supported) _proc->output_float = 0;
+         bool defaultchanged = false;
 
-         if(output_float != _proc->output_float || _err_sound_flag) {
+#ifndef IS_QT5
 
-             QAudioOutput *out_sound2;
-             QIODevice * out_sound_io2;
-             QAudioFormat format;
+         // polling method to change the default device (only if it meets the sample rate)
+
+         if(_proc->current_sound->is_default_device) {
+
+#ifdef IS_QT5
+             if(realdevname != QAudioDeviceInfo::defaultOutputDevice().deviceName()) {
+#else
+             if(realdevname != QMediaDevices::defaultAudioOutput().description()) {
+#endif
+                 MAudioDev param;
+                 param.device_name = QString("Default Output Device");
+                 param.sample_rate = _proc->_sample_rate;
+                 param.is_float = _proc->output_float ? true : false;
+
+                 MAudioDev *temp_sound;
+
+                 temp_sound = MAudio::MAudio_findDev(param);
+                 if(temp_sound) {
+
+                     if(!temp_sound->err && temp_sound->sample_rate == _proc->_sample_rate) {
+#ifdef IS_QT5
+                        realdevname = QAudioDeviceInfo::defaultOutputDevice().deviceName();
+#else
+                        realdevname = QMediaDevices::defaultAudioOutput().description();
+#endif
+                        defaultchanged = true;
+                     }
+
+                     delete temp_sound;
+                 }
+             }
+         }
+#endif
+
+         if(defaultchanged || (output_float != _proc->output_float || _err_sound_flag)) {
 
              int outf =_proc->output_float;
 
+             defaultchanged = false;
              _count_samples = 0;
 
-             format.setSampleRate(_proc->_sample_rate);
-             format.setChannelCount(2);
-             format.setCodec("audio/pcm");
-             format.setByteOrder(QAudioFormat::LittleEndian);
+             MAudioDev param;
+             param.device_name = _proc->current_sound->device_name;
+             param.sample_rate = _proc->_sample_rate;
+             param.is_float = outf ? true : false;
 
-             if(outf) {
-                 format.setSampleSize(32);
-                 format.setSampleType(QAudioFormat::Float);
-             } else {
-                 format.setSampleSize(16);
-                 format.setSampleType(QAudioFormat::SignedInt);
+             MAudioDev *temp_sound;
+
+             temp_sound = MAudio::MAudio_findDev(param);
+             if(!temp_sound) {
+                 MSG_ERR("ERROR: Creating Audio Device\n");
+                 QMessageBox::critical(NULL, "Fluidsynth_proc Error", "Error creating Audio Device\n.");
+                 return;
              }
 
-             out_sound2 = new QAudioOutput(_proc->current_sound, format);
+             if(temp_sound->err) {
+                 delete temp_sound;
+                 MSG_ERR("ERROR: Audio Device not found\n");
+                 QMessageBox::critical(NULL, "Fluidsynth_proc Error", "Audio Device not found\n.");
+                 return;
+             }
 
-             if(out_sound2) {
+             // test if new device have the same sample rate
+             if(temp_sound->sample_rate == _proc->_sample_rate) {
 
-                 out_sound_io2 = out_sound2->start();
+                 if(out_sound_io_t)
+                     out_sound_io_t->close();
 
-                 if(out_sound_io2) {
+                 if(out_sound_t) {
+                     out_sound_t->stop();
+                     out_sound_t->disconnect(this);
 
-                     if(_proc->out_sound_io) _proc->out_sound_io->close();
-
-                     if(_proc->out_sound) {
-                         _proc->out_sound->stop();
-                         _proc->out_sound->disconnect(this);
-                         delete _proc->out_sound;
-                     }
-
-                     _proc->out_sound = out_sound2;
-                     _proc->out_sound_io = out_sound_io2;
-
-                     output_float = outf;
-                     _err_sound_flag = 0;
-
-                     _proc->fluid_settings->setValue("Out use float", outf);
-                     MSG_OUT("fluid_Thread: audio output:\n    sample_rate: %i use float %i\n", _proc->_sample_rate, output_float);
-
-                 } else {
-
-                     delete out_sound2;
-                     _proc->output_float = output_float;
+                     delete out_sound_t;
                  }
 
-             } else
-                 _proc->output_float = output_float;
+                out_sound_io_t = NULL;
+
+                 _proc->current_sound = temp_sound;
+                 _proc->_sample_rate = temp_sound->sample_rate;
+
+                 if(temp_sound->is_float)
+                     outf = 1;
+                 else
+                     outf = 0;
+
+                qWarning("wow floar %i", outf);
+
+                _proc->output_float = output_float = outf;
+
+                _proc->status_audio_err = 1;
+                out_sound_t = MAudio::MAudio_CreateDev(temp_sound);
+
+                if(out_sound_t) {
+
+                    out_sound_io_t = out_sound_t->start();
+
+                    if(out_sound_io_t) {
+
+                        _proc->output_float = output_float = outf;
+                        _err_sound_flag = 0;
+
+                        _proc->fluid_settings->setValue("Out use float", outf);
+                        MSG_OUT("fluid_Thread: audio output:\n    sample_rate: %i use float %i\n", _proc->_sample_rate, output_float);
+                        _proc->status_audio_err = 0;
+                    } else {
+
+                        delete out_sound_t;
+                        out_sound_t = NULL;
+                        _proc->output_float = output_float;
+                        _proc->status_audio_err = 2;
+                    }
+
+                } else
+                _proc->output_float = output_float;
+             }
 
          }
 
@@ -1429,7 +1580,7 @@ void fluid_Thread::run()
          }
 
          if(_proc->sf2_id == FLUID_FAILED || _proc->disabled == 2
-                 || *sem == 1 || _proc->out_sound_io == NULL || _proc->out_sound == NULL) {
+                 || *sem == 1 || out_sound_io_t == NULL || out_sound_t == NULL) {
 
              if(*sem) {
                  _proc->iswaiting_signal = 1;
@@ -1455,32 +1606,7 @@ void fluid_Thread::run()
 
          if(_proc->synth) {
              err = fluid_synth_process(_proc->synth, fluid_out_samples, n_fx_chan * n_fx_groups * 2, fx, n_aud_chan * 2, dry);
- //sasa
-             if(0 && !err) {
-                 if(SYNTH_CHANS > 16) {
-                     for(int m = 0; m < (/*n_aud_chan*/OUT_CHANS * 2); m += 2) {
-                         float *left = dry[m];
-                         float *right = dry[m + 1];
-                         float *left2 = dry[m + 32];
-                         float *right2 = dry[m + 33];
-                         float *left3 = dry[m + 64];
-                         float *right3 = dry[m + 65];
-                         for(int n = 0; n <  fluid_out_samples; n++) {
-                             float v = left[n] + left2[n] + left3[n];
-                             if(v < -1.0f) v = -1.0f;
-                             else if(v > 1.0f) v = 1.0f;
-                             left[n] = v;
 
-                             v = right[n] + right2[n] + right3[n];
-                             if(v < -1.0f) v = -1.0f;
-                             else if(v > 1.0f) v = 1.0f;
-                             right[n] = v;
-                         }
-                     }
-
-
-                 }
-             }
          }
 
          _proc->mutex_fluid.unlock();
@@ -1505,6 +1631,14 @@ void fluid_Thread::run()
 
              VST_proc::VST_mix(dry, /*n_aud_chan*/PRE_CHAN, (_proc->_player_wav) ? _proc->_wave_sample_rate : _proc->_sample_rate, fluid_out_samples, 2);
 
+             // Leslie effect
+             for(int m = 0; m < (OUT_CHANS * 2); m += 2) {
+
+                 if(VST_proc::leslieON[m>>1]) {
+
+                     VST_proc::VST_LeslieEffect(dry[m], dry[m + 1], (_proc->_player_wav) ? _proc->_wave_sample_rate : _proc->_sample_rate, fluid_out_samples, &VST_proc::leslie[m>>1]);
+                 }
+             }
              vst_fluid_lock->unlock();
          }
 
@@ -1575,11 +1709,18 @@ void fluid_Thread::run()
 
                  /** WAVE MODULATOR (2) OUT **/
 
+#if defined(__SSE2__)
+                 if(using_SSE2) {
+                    if(filter) filter->PROC_samples_block(leftz, rightz, fluid_out_samples);
+                 }
+#endif
                  for(n = 0; n <  fluid_out_samples; n++) {
                      float left = *(leftz++), right = *(rightz++);
                      float *out = &mix_buffer[(n << 1)];
 
-                     if(filter) filter->PROC_samples(&left, &right);
+                     if(!using_SSE2) {
+                         if(filter) filter->PROC_samples(&left, &right);
+                     }
 
                      /** WAVE MODULATOR (3) IN **/
 
@@ -1606,93 +1747,18 @@ void fluid_Thread::run()
          }
 
          _count_samples += fluid_out_samples;
-
+// SSE2
          // convert and clip samples to output buffer
-         float *f = mix_buffer;
 
          float addl = 0.0, addr = 0.0;
 
-         for(n = 0; n < fluid_out_samples * 2; n++) {
-
-             if(*f < -1.0f) *f = -1.0f;
-             else if(*f  > 1.0f) *f = 1.0f;
-
-             if(n & 1)
-                addr+= *f * *f;
-             else
-                addl+= *f * *f;
-
-             buffer[n] = 32767.0f * (*(f++));
-
-         }
-
+         convert_Clipping_1(mix_buffer, buffer, fluid_out_samples, addl, addr);
 
          addl = sqrtf((addl) / (float) (fluid_out_samples));
          addr = sqrtf((addr) /  (float) (fluid_out_samples));
 
-
-#if 0
-         addl = addl / (float) (fluid_out_samples);
-         addr = addr /  (float) (fluid_out_samples);
-
-         if(addl == 0)
-             addl = -25;
-         else {
-             //addl /= (float) fluid_out_samples;
-            addl = 20.0 * log10(addl); // convert to dB
-         }
-
-         if(addr == 0)
-             addr = -25;
-         else {
-             //addr /= (float) fluid_out_samples;
-             addr = 20.0 * log10(addr);
-         }
-
-         if(addl < -47) addl = -47; // min -47 dB
-         if(addr < -47) addr = -47;  // min -47 dB
-
-         if(addr > 3) addr = 3; // max +3dB
-         if(addl > 3) addl = 3; // max +3dB
-
-         //qDebug("db %f ", addl);
-
-         addr-= 3; // dB correction
-         addl-= 3; // dB correction
-
-         addl = (50.0f + addl) * 4; // 50dB to power bar (0 to 200)
-         addr = (50.0f + addr) * 4; // 50dB to power bar (0 to 200)
-
-         if(addl > saddl) // remanence simulator
-             saddl = addl;
-
-         if(addr > saddr) // remanence simulator
-             saddr = addr;
-
-         addl = saddl;
-         addr = saddr;
-
-         //_proc->cleft = (25.0f + addl) * 8;
-         //_proc->cright = (25.0f + addr) * 8;
-
-         _proc->cleft = addl;
-         _proc->cright = addr;
-
-         if(saddl >= 1) saddl-= 1; // remanence simulator
-         if(saddr >= 1) saddr-= 1; // remanence simulator
-#else
-
-
          _proc->cleft = 40.0 * log(addl * 200.0);
          _proc->cright = 40.0 * log(addr * 200.0);
-
-
-#endif
-         /*
-
-         _proc->cleft = 40.0 * log(addl * 200.0 / (float) fluid_out_samples);
-         _proc->cright = 40.0 * log(addr * 200.0 / (float) fluid_out_samples);
-*/
 
          if(_proc->cleft > 200)  _proc->cleft = 200;
          if(_proc->cright > 200)  _proc->cright = 200;
@@ -1705,6 +1771,7 @@ void fluid_Thread::run()
                  : fluid_out_samples * 4;
          int len;
 
+
          char *buff = (_proc->wav_is_float) ?  (char *) mix_buffer : (char *) buffer;
 
          char *buff2 = (_proc->output_float) ?  (char *) mix_buffer : (char *) buffer;
@@ -1714,14 +1781,14 @@ void fluid_Thread::run()
 
          while (total > 0) {
 
-             if(_proc->_player_wav) { // alternative for WAV files
+             if(_proc && _proc->_player_wav) { // alternative for WAV files
 
                  if(_proc->_player_status >= PLAYER_STATUS_WAV_END && _proc->_player_status <= PLAYER_STATUS_WAV_NOTWRITE)
                      break;
 
                  if(_proc->_player_status == PLAYER_STATUS_WAV_BREAK || _proc->_player_status <= PLAYER_STATUS_WAV_ERROR)
 
-                     len = -1;
+                 len = -1;
 
                  else {
 
@@ -1729,9 +1796,7 @@ void fluid_Thread::run()
                          len = 0;
                          break;
                      } else
-                         len = _proc->_player_wav->write(((const char  *) buff + pos), total);
-                     // provisional
-                         //_proc->out_sound_io->write(((const char  *) buff2 + pos), total);
+                         len = _proc->_player_wav->write(((const char  *) buff + pos), total);  
                  }
 
                  if(len < 0) {
@@ -1744,32 +1809,34 @@ void fluid_Thread::run()
 
              } else {// write audio stream
 
-                 len= _proc->out_sound_io->write(((const char  *) buff2 + pos), total);
+                 len = out_sound_io_t->write(((const char  *) buff2 + pos), total);
 
              }
 
-             int stat = _proc->out_sound->state();
+             int stat = out_sound_t->state();
 
-             if((len < 0 || _proc->out_sound->error() || stat == QAudio::SuspendedState ||
-                stat == QAudio::InterruptedState ||
-                stat == QAudio::StoppedState) && MidiPlayer::isPlaying()) {
+             if(((len < 0) || out_sound_t->error() || stat == QAudio::SuspendedState ||
+#ifdef IS_QT5d
+                  stat == QAudio::InterruptedState ||
+#endif
+                  stat == QAudio::StoppedState) && MidiPlayer::isPlaying()) {
 
-                    emit _proc->pause_player();
-                    QThread::usleep(2);
-                    _err_sound_flag = 1;
-                }
+                 emit _proc->pause_player();
+                 QThread::usleep(2);
+                 _err_sound_flag = 1;
+             }
 
              if(len == 0) {
 
                  QThread::usleep(2);
 
-                 // timeout at 2 seconds
+                        // timeout at 2 seconds
                  if(((int) (QDateTime::currentMSecsSinceEpoch() - _system_time)) >= 2000) {
                      if (MidiPlayer::isPlaying())
-                        emit _proc->pause_player();
+                         emit _proc->pause_player();
                      QThread::usleep(2);
                      _err_sound_flag = 1;
-                    // MSG_OUT("time out\n");
+                     // MSG_OUT("time out\n");
                      break;
                  }
              }
@@ -1783,6 +1850,16 @@ void fluid_Thread::run()
 
      }
 
+     if(out_sound_io_t)
+         out_sound_io_t->close();
+
+     if(out_sound_t) {
+         out_sound_t->stop();
+         out_sound_t->disconnect(this);
+
+         delete out_sound_t;
+     }
+
      for(int n = 0; n < 100; n++) {
          if(_proc->synth) { // discard synth events
              int err = fluid_synth_process(_proc->synth, fluid_out_samples, n_fx_chan * n_fx_groups * 2, fx, n_aud_chan * 2, dry);
@@ -1793,7 +1870,6 @@ void fluid_Thread::run()
 
      _proc->iswaiting_signal = 2;
      mutex.unlock();
-
 }
 
 void fluid_Thread::recalculate_filters(int freq) {
@@ -1862,11 +1938,13 @@ void PROC_filter::PROC_Change_filter(float freq, float freq2,
 
         _gain3 = 1.0 + gain_dist / 10.0f;
 
-        for(int n = 0; n <= (int) MAX_DIST_DEF; n++) {
-            _distortion_tab[n] = (1.0 - exp(-(_gain3 * (float) n) / ((float) MAX_DIST_DEF))) * (1.0f / ((1.0 - exp(-_gain3))));
+        if(!using_SSE2) {
+            for(int n = 0; n <= (int) MAX_DIST_DEF; n++) {
+                _distortion_tab[n] = (1.0 - exp(-(_gain3 * (float) n) / ((float) MAX_DIST_DEF))) * (1.0f / ((1.0 - exp(-_gain3))));
 
-            if(_distortion_tab[n] < -.8f) _distortion_tab[n] = -.8f;
-            else if(_distortion_tab[n] > .8f) _distortion_tab[n] = .8f;
+                if(_distortion_tab[n] < -.8f) _distortion_tab[n] = -.8f;
+                else if(_distortion_tab[n] > .8f) _distortion_tab[n] = .8f;
+            }
         }
     }
 
@@ -1950,6 +2028,151 @@ PROC_filter::PROC_filter(float freq, float freq2, float sample_rate,
     _type = 0; // only create it
 }
 
+#if defined(__SSE2__)
+
+#include <emmintrin.h>  // SSE2
+
+inline float clampf(float x, float lo, float hi) {
+  return (x < lo) ? lo : (x > hi) ? hi : x;
+}
+
+inline __m128 fast_tanh_sse(__m128 x) {
+  // Aprox. de tanh(x): x * (27 + x^2) / (27 + 9x^2)
+  const __m128 x2 = _mm_mul_ps(x, x);
+  const __m128 num = _mm_mul_ps(x, _mm_add_ps(_mm_set1_ps(27.0f), x2));
+  const __m128 denom = _mm_add_ps(_mm_set1_ps(27.0f), _mm_mul_ps(_mm_set1_ps(9.0f), x2));
+  return _mm_div_ps(num, denom);
+}
+
+void PROC_filter::PROC_samples_block(float *left, float *right, int nsamples) {
+  __m128 gain1 = _mm_set1_ps(_gain);
+  __m128 gain2 = _mm_set1_ps(_gain2);
+  __m128 one   = _mm_set1_ps(1.0f);
+  __m128 minus_one = _mm_set1_ps(-1.0f);
+  __m128 gain3 = _mm_set1_ps(_gain3);
+
+  for (int i = 0; i < nsamples; i += 4) {
+
+    __m128 l = _mm_loadu_ps(&left[i]);
+    __m128 r = _mm_loadu_ps(&right[i]);
+
+    // distorsion
+    if(_type & PROC_FILTER_DISTORTION) {
+        l = _mm_mul_ps(l, gain3); // apply drive
+        r = _mm_mul_ps(r, gain3);
+
+        l = fast_tanh_sse(l);    // non-linear waveshaping
+        r = fast_tanh_sse(r);
+
+        // optional: normalize again
+        const __m128 inv_gain = _mm_set1_ps(1.0f / (_gain3 / 2.0f));
+        l = _mm_mul_ps(l, inv_gain);
+        r = _mm_mul_ps(r, inv_gain);
+
+        _mm_store_ps(&left[i], l);
+        _mm_store_ps(&right[i], r);
+    }
+
+    // Clipping [-1.0, 1.0]
+    l = _mm_max_ps(minus_one, _mm_min_ps(one, l));
+    r = _mm_max_ps(minus_one, _mm_min_ps(one, r));
+
+    // Copias para filtros paso alto
+    __m128 l_orig = l;
+    __m128 r_orig = r;
+
+    __m128 accul = _mm_setzero_ps();
+    __m128 accur = _mm_setzero_ps();
+
+             // Filtro paso bajo
+    if (_type & PROC_FILTER_LOW_PASS) {
+        // Vectorizamos el filtro solo si se aplica el mismo a todos los canales
+        accul = _mm_add_ps(accul, _mm_mul_ps(_mm_set1_ps(_Icoefs[0]), l));
+        accul = _mm_add_ps(accul, _mm_mul_ps(_mm_set1_ps(_Icoefs[1]), _mm_set1_ps(_Isleft[1])));
+        accul = _mm_add_ps(accul, _mm_mul_ps(_mm_set1_ps(_Icoefs[2]), _mm_set1_ps(_Isleft[2])));
+        accul = _mm_sub_ps(accul, _mm_mul_ps(_mm_set1_ps(_Ocoefs[0]), _mm_set1_ps(_Osleft[0])));
+        accul = _mm_sub_ps(accul, _mm_mul_ps(_mm_set1_ps(_Ocoefs[1]), _mm_set1_ps(_Osleft[1])));
+
+        accur = _mm_add_ps(accur, _mm_mul_ps(_mm_set1_ps(_Icoefs[0]), r));
+        accur = _mm_add_ps(accur, _mm_mul_ps(_mm_set1_ps(_Icoefs[1]), _mm_set1_ps(_Isright[1])));
+        accur = _mm_add_ps(accur, _mm_mul_ps(_mm_set1_ps(_Icoefs[2]), _mm_set1_ps(_Isright[2])));
+        accur = _mm_sub_ps(accur, _mm_mul_ps(_mm_set1_ps(_Ocoefs[0]), _mm_set1_ps(_Osright[0])));
+        accur = _mm_sub_ps(accur, _mm_mul_ps(_mm_set1_ps(_Ocoefs[1]), _mm_set1_ps(_Osright[1])));
+
+        _Isleft[2] = _Isleft[1];
+        _Isleft[1] = _Isleft[0];
+        _Isleft[0] = _mm_cvtss_f32(l);
+
+        _Isright[2] = _Isright[1];
+        _Isright[1] = _Isright[0];
+        _Isright[0] = _mm_cvtss_f32(r);
+
+        l = _mm_mul_ps(accul, gain1);
+        r = _mm_mul_ps(accur, gain1);
+
+        _Osleft[1] = _Osleft[0];
+        _Osleft[0] = _mm_cvtss_f32(accul);
+
+        _Osright[1] = _Osright[0];
+        _Osright[0] = _mm_cvtss_f32(accur);
+    } else {
+        l = r = _mm_setzero_ps();
+    }
+
+             // Filtro paso alto
+    if (_type & PROC_FILTER_HIGH_PASS) {
+        __m128 accul2 = _mm_setzero_ps();
+        __m128 accur2 = _mm_setzero_ps();
+
+        accul2 = _mm_add_ps(accul2, _mm_mul_ps(_mm_set1_ps(_I2coefs[0]), l_orig));
+        accul2 = _mm_add_ps(accul2, _mm_mul_ps(_mm_set1_ps(_I2coefs[1]), _mm_set1_ps(_I2sleft[1])));
+        accul2 = _mm_add_ps(accul2, _mm_mul_ps(_mm_set1_ps(_I2coefs[2]), _mm_set1_ps(_I2sleft[2])));
+        accul2 = _mm_sub_ps(accul2, _mm_mul_ps(_mm_set1_ps(_O2coefs[0]), _mm_set1_ps(_O2sleft[0])));
+        accul2 = _mm_sub_ps(accul2, _mm_mul_ps(_mm_set1_ps(_O2coefs[1]), _mm_set1_ps(_O2sleft[1])));
+
+        accur2 = _mm_add_ps(accur2, _mm_mul_ps(_mm_set1_ps(_I2coefs[0]), r_orig));
+        accur2 = _mm_add_ps(accur2, _mm_mul_ps(_mm_set1_ps(_I2coefs[1]), _mm_set1_ps(_I2sright[1])));
+        accur2 = _mm_add_ps(accur2, _mm_mul_ps(_mm_set1_ps(_I2coefs[2]), _mm_set1_ps(_I2sright[2])));
+        accur2 = _mm_sub_ps(accur2, _mm_mul_ps(_mm_set1_ps(_O2coefs[0]), _mm_set1_ps(_O2sright[0])));
+        accur2 = _mm_sub_ps(accur2, _mm_mul_ps(_mm_set1_ps(_O2coefs[1]), _mm_set1_ps(_O2sright[1])));
+
+        _I2sleft[2] = _I2sleft[1];
+        _I2sleft[1] = _I2sleft[0];
+        _I2sleft[0] = _mm_cvtss_f32(l_orig);
+
+        _I2sright[2] = _I2sright[1];
+        _I2sright[1] = _I2sright[0];
+        _I2sright[0] = _mm_cvtss_f32(r_orig);
+
+        l_orig = _mm_add_ps(l, _mm_mul_ps(accul2, gain2));
+        r_orig = _mm_add_ps(r, _mm_mul_ps(accur2, gain2));
+
+        _O2sleft[1] = _O2sleft[0];
+        _O2sleft[0] = _mm_cvtss_f32(accul2);
+
+        _O2sright[1] = _O2sright[0];
+        _O2sright[0] = _mm_cvtss_f32(accur2);
+    } else {
+
+        if((_type & 7) != PROC_FILTER_DISTORTION) {
+            l_orig = r_orig = _mm_setzero_ps();
+        }
+    }
+
+    // Mezcla
+
+    l = _mm_add_ps(l, l_orig);
+    r = _mm_add_ps(r, r_orig);
+
+    // Clipping final [-1, 1]
+    l = _mm_max_ps(minus_one, _mm_min_ps(one, l));
+    r = _mm_max_ps(minus_one, _mm_min_ps(one, r));
+
+    _mm_storeu_ps(&left[i], l);
+    _mm_storeu_ps(&right[i], r);
+  }
+}
+#endif
 
 void PROC_filter::PROC_samples(float *left, float *right){
 
@@ -2312,7 +2535,8 @@ int fluidsynth_proc::MIDtoWAV(QFile *wav, QWidget *parent, MidiFile* file) {
     _player_wav = wav;
     _player_status = PLAYER_STATUS_WAV_NOTWRITE; // only process (not audio output)
 
-    fluid_Thread_playerWAV *player = new fluid_Thread_playerWAV(this);
+    qWarning("wav fluid_Thread");
+    fluid_Thread_playerWAV *player = new fluid_Thread_playerWAV((fluidsynth_proc *) fluidsynth_proc::first);
 
     if(!player) {
         _player_wav = NULL;
@@ -3142,5 +3366,173 @@ void fluid_Thread_playerWAV::write_header(QFile *f, int size, int sample_rate, i
 
 }
 
+/////////////////////////////////////////////////////////////////////
+// SSE2 functions
+/////////////////////////////////////////////////////////////////////
+
+bool using_SSE2 = false;
+
+#if defined(__SSE2__)
+
+#include <emmintrin.h> // SSE2
+
+#include <stdint.h>
+
+#if defined(_MSC_VER)
+#include <intrin.h>
+#elif defined(__GNUC__) || defined(__clang__)
+#include <cpuid.h>
+#endif
+
+bool supportsSSE2() {
+  uint32_t eax, ebx, ecx, edx;
+
+#if defined(_MSC_VER)
+  int cpuInfo[4];
+  __cpuid(cpuInfo, 1);
+  edx = cpuInfo[3];
+#elif defined(__GNUC__) || defined(__clang__)
+  __cpuid(1, eax, ebx, ecx, edx);
+#else
+  return false; // no soportado
+#endif
+
+  return (edx & (1 << 26)) != 0; // bit 26 = SSE2
+}
+
+void _convert_Clipping_1_SSE2(float* mix_buffer, short* buffer, int fluid_out_samples, float& addl, float& addr) {
+
+  int n = 0;
+  int total = fluid_out_samples * 2;
+
+  __m128 vMin = _mm_set1_ps(-1.0f);
+  __m128 vMax = _mm_set1_ps(1.0f);
+  __m128 vScale = _mm_set1_ps(32767.0f);
+
+  for (; n <= total - 8; n += 8) {
+      __m128 s1 = _mm_loadu_ps(&mix_buffer[n]);
+      __m128 s2 = _mm_loadu_ps(&mix_buffer[n + 4]);
+
+      // Clipping
+      s1 = _mm_min_ps(_mm_max_ps(s1, vMin), vMax);
+      s2 = _mm_min_ps(_mm_max_ps(s2, vMin), vMax);
+
+      // Acumulación por canal (intercalados L R L R ...)
+      float temp[8];
+      _mm_storeu_ps(&temp[0], s1);
+      _mm_storeu_ps(&temp[4], s2);
+      for (int i = 0; i < 8; ++i) {
+          if ((n + i) & 1)
+            addr += temp[i] * temp[i];
+          else
+            addl += temp[i] * temp[i];
+        }
+
+      // Escalado a 16 bits y almacenamiento
+      s1 = _mm_mul_ps(s1, vScale);
+      s2 = _mm_mul_ps(s2, vScale);
+
+             // Convertimos a enteros
+      __m128i i1 = _mm_cvtps_epi32(s1);
+      __m128i i2 = _mm_cvtps_epi32(s2);
+
+      // Empaquetamos en 16 bits
+      __m128i packed = _mm_packs_epi32(i1, i2);
+
+      // Guardamos
+      _mm_storeu_si128((__m128i*)&buffer[n], packed);
+    }
+
+  // resto
+  for (; n < total; ++n) {
+      float sample = mix_buffer[n];
+
+      if (sample < -1.0f) sample = -1.0f;
+      else if (sample > 1.0f) sample = 1.0f;
+
+      if (n & 1)
+        addr += sample * sample;
+      else
+        addl += sample * sample;
+
+      buffer[n] = static_cast<short>(sample * 32767.0f);
+    }
+}
+#else
+
+bool supportsSSE2() {
+    return false;
+}
+
+#endif
+
+
+void convert_Clipping_1(float* f, short* buffer, int fluid_out_samples, float& addl, float& addr) {
+
+#if defined(__SSE2__)
+  if(using_SSE2) {
+      _convert_Clipping_1_SSE2(f, buffer, fluid_out_samples, addl, addr);
+      return;
+  }
+#endif
+
+  for(int n = 0; n < fluid_out_samples * 2; n++) {
+
+      if(*f < -1.0f) *f = -1.0f;
+      else if(*f  > 1.0f) *f = 1.0f;
+
+      if(n & 1)
+        addr+= *f * *f;
+      else
+        addl+= *f * *f;
+
+      buffer[n] = 32767.0f * (*(f++));
+
+    }
+
+}
+
+#if defined(__SSE2__)
+
+void _set_fbuff_volume_SSE2(float vol, int nsamples, float *lbuf, float *rbuf, float *lvst, float *rvst) {
+  int n = 0;
+  int aligned_samples = nsamples & ~3; // alinea a 4
+  __m128 vvol = _mm_set1_ps(vol);      // volumen como vector
+
+  // bloques de 4
+  for (; n < aligned_samples; n += 4) {
+      __m128 lsrc = _mm_loadu_ps(&lvst[n]);  // carga 4 floats de lvst
+      __m128 rsrc = _mm_loadu_ps(&rvst[n]);  // carga 4 floats de rvst
+
+      __m128 lres = _mm_mul_ps(lsrc, vvol);  // multiplica
+      __m128 rres = _mm_mul_ps(rsrc, vvol);
+
+      _mm_storeu_ps(&lbuf[n], lres);         // guarda resultado
+      _mm_storeu_ps(&rbuf[n], rres);
+    }
+
+  // Resto
+  for (; n < nsamples; ++n) {
+      lbuf[n] = lvst[n] * vol;
+      rbuf[n] = rvst[n] * vol;
+    }
+}
+
+#endif
+
+void set_fbuff_volume(float vol, int nsamples, float *lbuf, float *rbuf, float *lvst, float *rvst) {
+
+#if defined(__SSE2__)
+  if(using_SSE2) {
+      _set_fbuff_volume_SSE2(vol, nsamples, lbuf, rbuf, lvst, rvst);
+      return;
+    }
+#endif
+
+  for(int n = 0; n < nsamples; n++) {
+      lbuf[n] = lvst[n] * vol;
+      rbuf[n] = rvst[n] * vol;
+    }
+}
 
 #endif

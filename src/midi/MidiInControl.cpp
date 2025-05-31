@@ -556,7 +556,15 @@ MidiInControl::MidiInControl(QWidget* parent): QDialog(parent, Qt::WindowSystemM
                          "QGroupBox QSpinBox {color: white; background-color: #9090b3;} \n"
                          "QGroupBox QSpinBox:disabled {color: darkGray; background-color: #9090b3;} \n"
                          "QGroupBox QPushButton {color: black; background-color: #c7c9df;} \n"
-                         "QGroupBox QToolTip {color: black;} \n");
+                         "QGroupBox QToolTip {color: black;} \n"
+
+                         //"QGroupBox::indicator:!checked {background-color: transparent; image: url(:/run_environment/graphics/custom/unchecked.png);}\n"
+                         //"QGroupBox::indicator:checked {background-color: transparent; image: url(:/run_environment/graphics/custom/checked.png);}\n"
+                         //"QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top left;\n"
+                         //"margin: 0 3px 0 3px;}\n"
+
+                         "QGroupBox QCheckBox::indicator {image: url(:/run_environment/graphics/custom/unchecked.png);}\n"
+                         "QGroupBox QCheckBox::indicator:checked {image: url(:/run_environment/graphics/custom/checked.png);}\n");
 
     groupBoxNote = new QGroupBox(MIDIin2);
     groupBoxNote->setObjectName(QString::fromUtf8("groupBoxNote"));
@@ -657,10 +665,10 @@ MidiInControl::MidiInControl(QWidget* parent): QDialog(parent, Qt::WindowSystemM
     groupBoxVelocityUP->setCheckable(true);
     groupBoxVelocityUP->setChecked(VelocityUP_enable[cur_pairdev]);
     groupBoxVelocityUP->setTitle("Velocity UP Scale/Cut");
-    groupBoxVelocityUP->setStyleSheet("margin-top: 0px; background-color:  #60b386;\n");
+    groupBoxVelocityUP->setStyleSheet("QGroupBox {margin-top: 0px; background-color:  #60b386;}\n" + GroupBoxChecked2);
     TOOLTIP(groupBoxVelocityUP, "Velocity cut/scale for channels UP");
 
-    dialScaleVelocityUP = new QDialE(groupBoxVelocityUP);
+    dialScaleVelocityUP = new QDialE(groupBoxVelocityUP, QDIALE_BLACK_NOTCH_BLACKDOT);
     dialScaleVelocityUP->setObjectName(QString::fromUtf8("dialScaleVelocityUP"));
     dialScaleVelocityUP->setGeometry(QRect(10, 13, 61, 61));
     dialScaleVelocityUP->setMinimum(0);
@@ -686,7 +694,7 @@ MidiInControl::MidiInControl(QWidget* parent): QDialog(parent, Qt::WindowSystemM
     labelViewScaleVelocityUP->setNum(((double) VelocityUP_scale[cur_pairdev])/10.0f);
     labelViewScaleVelocityUP->setStyleSheet(QString::fromUtf8("color: white; background-color: #00C070;\n"));
 
-    dialVelocityUP = new QDialE(groupBoxVelocityUP);
+    dialVelocityUP = new QDialE(groupBoxVelocityUP, QDIALE_BLACK_NOTCH_BLACKDOT);
     dialVelocityUP->setObjectName(QString::fromUtf8("dialVelocityUP"));
     dialVelocityUP->setGeometry(QRect(90, 13, 61, 61));
     dialVelocityUP->setMinimum(10);
@@ -696,6 +704,7 @@ MidiInControl::MidiInControl(QWidget* parent): QDialog(parent, Qt::WindowSystemM
     dialVelocityUP->setNotchesVisible(true);
     TOOLTIP(dialVelocityUP, "Velocity Cut for UP\n"
                                "(maximun velocity for the notes)");
+
 
     labelViewVelocityUP = new QLabel(groupBoxVelocityUP);
     labelViewVelocityUP->setObjectName(QString::fromUtf8("labelViewVelocityUP"));
@@ -715,10 +724,10 @@ MidiInControl::MidiInControl(QWidget* parent): QDialog(parent, Qt::WindowSystemM
     groupBoxVelocityDOWN->setCheckable(true);
     groupBoxVelocityDOWN->setChecked(VelocityDOWN_enable[cur_pairdev]);
     groupBoxVelocityDOWN->setTitle("Velocity DOWN Scale/Cut");
-    groupBoxVelocityDOWN->setStyleSheet("margin-top: 0px; background-color:  #60b386;");
+    groupBoxVelocityDOWN->setStyleSheet("QGroupBox {margin-top: 0px; background-color:  #60b386;}\n" + GroupBoxChecked2);
     TOOLTIP(groupBoxVelocityDOWN, "Velocity cut/scale for channels DOWN");
 
-    dialScaleVelocityDOWN = new QDialE(groupBoxVelocityDOWN);
+    dialScaleVelocityDOWN = new QDialE(groupBoxVelocityDOWN, QDIALE_BLACK_NOTCH_BLACKDOT);
     dialScaleVelocityDOWN->setObjectName(QString::fromUtf8("dialScaleVelocityDOWN"));
     dialScaleVelocityDOWN->setGeometry(QRect(10, 13, 61, 61));
     dialScaleVelocityDOWN->setMinimum(0);
@@ -744,7 +753,7 @@ MidiInControl::MidiInControl(QWidget* parent): QDialog(parent, Qt::WindowSystemM
     labelViewScaleVelocityDOWN->setNum(((double) VelocityDOWN_scale[cur_pairdev])/10.0f);
     labelViewScaleVelocityDOWN->setStyleSheet(QString::fromUtf8("color: white; background-color: #00C070;\n"));
 
-    dialVelocityDOWN = new QDialE(groupBoxVelocityDOWN);
+    dialVelocityDOWN = new QDialE(groupBoxVelocityDOWN, QDIALE_BLACK_NOTCH_BLACKDOT);
     dialVelocityDOWN->setObjectName(QString::fromUtf8("dialVelocityDOWN"));
     dialVelocityDOWN->setGeometry(QRect(90, 13, 61, 61));
     dialVelocityDOWN->setMinimum(10);
@@ -817,7 +826,7 @@ MidiInControl::MidiInControl(QWidget* parent): QDialog(parent, Qt::WindowSystemM
     SplitBox = new QGroupBox(MIDIin2);
     SplitBox->setObjectName(QString::fromUtf8("SplitBox"));
 
-    SplitBox->setStyleSheet(style1);
+    SplitBox->setStyleSheet(style1 + GroupBoxChecked1);
 
     SplitBox->setGeometry(QRect(30, 20 + yyy, 790 - 60, 151));
     SplitBox->setCheckable(true);
@@ -1035,14 +1044,14 @@ MidiInControl::MidiInControl(QWidget* parent): QDialog(parent, Qt::WindowSystemM
 
     achordcheckBoxUp = new QCheckBox(SplitBox);
     achordcheckBoxUp->setObjectName(QString::fromUtf8("achordcheckBoxUp"));
-    achordcheckBoxUp->setGeometry(QRect(dx1, 50, 77, 31));
+    achordcheckBoxUp->setGeometry(QRect(dx1, 50, 79, 31));
     achordcheckBoxUp->setText("Auto Chord");
     achordcheckBoxUp->setChecked(_autoChordUp[cur_pairdev]);
     TOOLTIP(achordcheckBoxUp, "Select Auto Chord Mode for Up channel");
 
     achordcheckBoxDown = new QCheckBox(SplitBox);
     achordcheckBoxDown->setObjectName(QString::fromUtf8("achordcheckBoxDown"));
-    achordcheckBoxDown->setGeometry(QRect(dx1, 110, 77, 31));
+    achordcheckBoxDown->setGeometry(QRect(dx1, 110, 79, 31));
     achordcheckBoxDown->setText("Auto Chord");
     achordcheckBoxDown->setChecked(_autoChordDown[cur_pairdev]);
     TOOLTIP(achordcheckBoxDown, "Select Auto Chord Mode for Down channel");
@@ -1634,15 +1643,19 @@ int MidiInControl::get_key() {
     mb3 = NULL;
     get_key_mode = 0;
     set_current_note(-1);
-    QMessageBox *mb = new QMessageBox("MIDI Input Control",
-                                      "Press a note in the keyboard",
-                                      QMessageBox::Information,
-                          QMessageBox::Cancel, 0, 0, _parent);
+
+    QMessageBox *mb = new QMessageBox(_parent);
+    mb->setWindowTitle("MIDI Input Control");
+    mb->setText("Press a note in the keyboard");
+    mb->setIcon(QMessageBox::Information);
+    mb->setStandardButtons(QMessageBox::Cancel);
+
     QFont font;
     font.setPixelSize(24);
     mb->setFont(font);
     mb->setIconPixmap(QPixmap(":/run_environment/graphics/channelwidget/instrument.png"));
-    mb->button(QMessageBox::Cancel)->animateClick(10000);
+    //mb->button(QMessageBox::Cancel)->animateClick(10000);
+    QTimer::singleShot(10000, mb->button(QMessageBox::Cancel), &QAbstractButton::click);
 
     //mb->exec();
     mb->setModal(false);
@@ -1678,15 +1691,18 @@ int MidiInControl::get_ctrl() {
     mb3 = NULL;
     _current_ctrl = -1;
 
-    QMessageBox *mb = new QMessageBox("MIDI Input Control",
-                                      "Press/use a Control Change in the Midi Device",
-                                      QMessageBox::Information,
-                                      QMessageBox::Cancel, 0, 0, _parent);
+    QMessageBox *mb = new QMessageBox(_parent);
+    mb->setWindowTitle("MIDI Input Control");
+    mb->setText("Press/use a Control Change in the Midi Device");
+    mb->setIcon(QMessageBox::Information);
+    mb->setStandardButtons(QMessageBox::Cancel);
+
     QFont font;
     font.setPixelSize(24);
     mb->setFont(font);
     mb->setIconPixmap(QPixmap(":/run_environment/graphics/channelwidget/instrument.png"));
-    mb->button(QMessageBox::Cancel)->animateClick(10000);
+    //mb->button(QMessageBox::Cancel)->animateClick(10000);
+    QTimer::singleShot(10000, mb->button(QMessageBox::Cancel), &QAbstractButton::click);
 
     //mb->exec();
     mb->setModal(false);
@@ -1719,10 +1735,12 @@ int MidiInControl::wait_record(QWidget *parent) {
 
     get_key_mode = 1;
     set_current_note(-1);
-    QMessageBox *mb = new QMessageBox("MIDI Input Control",
-                                      "Press a note in the keyboard\nto start the recording",
-                                      QMessageBox::Information,
-                          QMessageBox::Cancel, 0, 0, parent);
+
+    QMessageBox *mb = new QMessageBox(parent);
+    mb->setWindowTitle("MIDI Input Control");
+    mb->setText("Press a note in the keyboard\nto start the recording");
+    mb->setIcon(QMessageBox::Information);
+    mb->setStandardButtons(QMessageBox::Cancel);
 
     QFont font;
     font.setPixelSize(24);
@@ -6231,7 +6249,7 @@ void MidiInControl::loadActionSettings() {
             inActiondata.bypass = -1;
 
             QByteArray d = _settings->value(ActionGP + "/inActiondata" + QString::number(index) + " " + QString::number(number), "").toByteArray();
-            if(d.count() == 16) {
+            if(d.length() == 16) {
                 inActiondata.status =       d[0];
                 inActiondata.device =       d[1];
                 inActiondata.channel =      d[2];
@@ -6414,7 +6432,7 @@ void MidiInControl::tab_Actions(QWidget *w)
                 int number = 0;
                 for (; number < MAX_LIST_ACTION; number++) {
                     QByteArray d = _settings->value(ActionGP + "/inActiondata" + QString::number(index) + " " + QString::number(number), "").toByteArray();
-                    if(d.count() != 16) {
+                    if(d.length() != 16) {
                         break;
                     }
                 }
@@ -6483,7 +6501,7 @@ void MidiInControl::tab_Actions(QWidget *w)
                 int number = 0;
                 for (; number < MAX_LIST_ACTION; number++) {
                     QByteArray d = _settings->value(ActionGP + "/inActiondata" + QString::number(index) + " " + QString::number(number), "").toByteArray();
-                    if(d.count() != 16) {
+                    if(d.length() != 16) {
                         break;
                     }
                 }
@@ -6551,7 +6569,7 @@ void MidiInControl::tab_Actions(QWidget *w)
                 int number = 0;
                 for (; number < MAX_LIST_ACTION; number++) {
                     QByteArray d = _settings->value(ActionGP + "/inActiondata" + QString::number(index) + " " + QString::number(number), "").toByteArray();
-                    if(d.count() != 16) {
+                    if(d.length() != 16) {
                         break;
                     }
                 }
@@ -6629,7 +6647,7 @@ void MidiInControl::tab_Actions(QWidget *w)
 
                 if(number >= 0) {
                     d = _settings->value(ActionGP + "/inActiondata" + QString::number(index) + " " + QString::number(number), "").toByteArray();
-                    if(d.count() != 16) number = -1;
+                    if(d.length() != 16) number = -1;
                 }
 
                 if(number >= 0) {
@@ -6676,7 +6694,7 @@ void MidiInControl::tab_Actions(QWidget *w)
 
                 if(number < InputListAction->count()) {
                     d = _settings->value(ActionGP + "/inActiondata" + QString::number(index) + " " + QString::number(number), "").toByteArray();
-                    if(d.count() != 16) number = InputListAction->count();
+                    if(d.length() != 16) number = InputListAction->count();
                 }
 
                 if(number < InputListAction->count()) {

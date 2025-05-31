@@ -49,12 +49,12 @@
 #include <QComboBox>
 #include <QCheckBox>
 #include <QPainter>
-#include <QAudioDeviceInfo>
-
 #include "../gui/MidiEditorInstrument.h"
 #include "../gui/GuiTools.h"
 
 #define SYNTH_CHANS2 48
+
+#define NEWDESP 60
 
 int addInstrumentNamesFromSF2(const char *filename);
 
@@ -74,18 +74,18 @@ public:
     QWidget *MainVolume;
     QScrollArea *scrollArea;
     QGroupBox *groupChan[SYNTH_CHANS2];
-    QSlider *ChanVol[SYNTH_CHANS2];
-    QSlider *BalanceSlider[SYNTH_CHANS2];
+    QSliderE *ChanVol[SYNTH_CHANS2];
+    QSliderE *BalanceSlider[SYNTH_CHANS2];
     QLabel *BalanceLabel[SYNTH_CHANS2];
     QLabel *Chan[SYNTH_CHANS2];
-    QDial *chanGain[SYNTH_CHANS2];
+    QDialE *chanGain[SYNTH_CHANS2];
     QLabel *label;
     QLabel *chanGainLabel[SYNTH_CHANS2];
     QVLabel *qv[SYNTH_CHANS2];
     QPushButton *wicon[SYNTH_CHANS2 * 2];
 
     QGroupBox *groupMainVol;
-    QSlider *MainVol;
+    QSliderE *MainVol;
     QLabel *Main;
 
     QGroupBox *groupVUm;
@@ -106,16 +106,16 @@ public:
     QLabel *label_low_freq;
     QLabel *label_low_res;
     QLabel *label_low_disp;
-    QDial *LowCutGain;
+    QDialE *LowCutGain;
     QLabel *label_low_disp2;
-    QDial *LowCutFreq;
+    QDialE *LowCutFreq;
     QLabel *label_low_disp3;
-    QDial *LowCutRes;
+    QDialE *LowCutRes;
     QPushButton *LowCutButton;
     QGroupBox *DistortionBox;
     QLabel *label_dist_gain;
     QLabel *label_distortion_disp;
-    QDial *DistortionGain;
+    QDialE *DistortionGain;
     QPushButton *DistortionButton;
 
     QGroupBox *HighCutBox;
@@ -123,20 +123,41 @@ public:
     QLabel *label_high_freq;
     QLabel *label_high_res;
     QLabel *label_high_disp;
-    QDial *HighCutGain;
+    QDialE *HighCutGain;
     QLabel *label_high_disp2;
-    QDial *HighCutFreq;
+    QDialE *HighCutFreq;
     QLabel *label_high_disp3;
-    QDial *HighCutRes;
+    QDialE *HighCutRes;
     QPushButton *HighCutButton;
 
     QGroupBox *TremoloBox;
     QLabel *label_trem_level;
     QLabel *label_trem_freq;
     QLabel *label_trem_disp;
-    QDial *TremoloLevel;
+    QDialE *TremoloLevel;
     QLabel *label_trem_disp2;
-    QDial *TremoloFreq;
+    QDialE *TremoloFreq;
+
+    QGroupBox *LeslieBox;
+    QLabel *label_leslie_Bass;
+    QLabel *label_leslie_Treble;
+    QLabel *label_leslie_deepB;
+    //QLabel *label_leslie_freqB;
+    QLabel *label_leslie_rotationB;
+    QLabel *label_leslie_dispB;
+    QDialE *LeslieDeepB;
+    QLabel *label_leslie_dispB3;
+    QDialE *LeslieRotationB;
+    QLabel *label_leslie_deepT;
+    QLabel *label_leslie_freqT;
+    QLabel *label_leslie_rotationT;
+    QLabel *label_leslie_dispT;
+    QDialE *LeslieDeepT;
+    QLabel *label_leslie_dispT2;
+    QDialE *LeslieFreqT;
+    QLabel *label_leslie_dispT3;
+    QDialE *LeslieRotationT;
+    QPushButton *LeslieButton;
 
     QGroupBox *PresetBox;
     QSpinBox *spinPreset;
@@ -285,8 +306,8 @@ private:
     int _save_mode;
     bool block_scroll;
 
-    QList<QAudioDeviceInfo> dev_out;
-
+    //QList<QAudioDeviceInfo> dev_out;
+    QList<QString>  dev_out;
 
 };
 

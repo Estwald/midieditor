@@ -44,7 +44,7 @@
 #include <QtWidgets/QScrollBar>
 #include <QtWidgets/QDialogButtonBox>
 #include <QtWidgets/QStackedWidget>
-#include <QtWidgets/QDesktopWidget>
+//#include <QtWidgets/QDesktopWidget>
 #include <QTimer>
 #include <QSemaphore>
 #include <QMutex>

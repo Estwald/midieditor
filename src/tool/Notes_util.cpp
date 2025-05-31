@@ -1873,7 +1873,7 @@ void MainWindow::FluidSaveAsWav() {
         if (file) {
             oldPath = file->path();
             if (!file->saved()) {
-                switch (QMessageBox::question(this, "Save file?", "Save file " + file->path() + " before export to WAV?", "Save", "Export without saving", "Abort", 0, 2)) {
+                switch (MessageBoxQuestion(this, "Save file?", "Save file " + file->path() + " before export to WAV?", "Save", "Export without saving", "Abort")) {
                 case 0: {
                     // save
                     if (QFile(file->path()).exists()) {
@@ -1973,7 +1973,7 @@ void MainWindow::FluidSaveAsMp3() {
         if (file) {
             oldPath = file->path();
             if (!file->saved()) {
-                switch (QMessageBox::question(this, "Save file?", "Save file " + file->path() + " before export to MP3?", "Save", "Export without saving", "Abort", 0, 2)) {
+                switch (MessageBoxQuestion(this, "Save file?", "Save file " + file->path() + " before export to MP3?", "Save", "Export without saving", "Abort")) {
                 case 0: {
                     // save
                     if (QFile(file->path()).exists()) {
@@ -2039,6 +2039,13 @@ void MainWindow::FluidSaveAsMp3() {
 
     if(!QFile::exists(file_mp3)) {
         QMessageBox::critical(this, "MP3 Saving", "lame.exe not found!");
+
+        foreach (QWidget* w, _disableLoading) {
+            if(w)
+                w->setEnabled(true);
+
+        }
+
         return;
     }
 
@@ -2158,7 +2165,7 @@ void MainWindow::FluidSaveAsFlac() {
         if (file) {
             oldPath = file->path();
             if (!file->saved()) {
-                switch (QMessageBox::question(this, "Save file?", "Save file " + file->path() + " before export to FLAC?", "Save", "Export without saving", "Abort", 0, 2)) {
+                switch (MessageBoxQuestion(this, "Save file?", "Save file " + file->path() + " before export to FLAC?", "Save", "Export without saving", "Abort")) {
                 case 0: {
                     // save
                     if (QFile(file->path()).exists()) {
@@ -2224,6 +2231,12 @@ void MainWindow::FluidSaveAsFlac() {
 
     if(!QFile::exists(file_flac)) {
         QMessageBox::critical(this, "FLAC Saving", "flac.exe not found!");
+
+        foreach (QWidget* w, _disableLoading) {
+            if(w)
+                w->setEnabled(true);
+
+        }
         return;
     }
 
@@ -2372,7 +2385,7 @@ void MainWindow::SaveAsMSEQ() {
                      "exported, which will later be played on channels 12, 13, 14, 15\n"
                      "and 9 of the device, as a fixed rhythm.\n\n";
 
-    switch (QMessageBox::question(this, "Export to MSEQ file", blabla + "How do you want to export the file " + oldPath + "?", "Basic Sequencer: Only the Channel 0", "'Auto Rythm' Sequencer: Channels 0 to 3 and 9 (DRUM)", "Abort, I don't want to export", 0, 2)) {
+    switch (MessageBoxQuestion(this, "Export to MSEQ file", blabla + "How do you want to export the file " + oldPath + "?", "Basic Sequencer: Only the Channel 0", "'Auto Rythm' Sequencer: Channels 0 to 3 and 9 (DRUM)", "Abort, I don't want to export")) {
         case 0: {
             onlych0 = true;
             break;
@@ -2833,7 +2846,7 @@ void MainWindow::check_overlapped_notes() {
     if(use_protocol) {
         file->protocol()->endAction();
 
-        switch (QMessageBox::question(this, "MidiEditor", "Midieditor has detected overlapping notes in the file\nthat affects the currently selected notes\nOverlapped Notes Correction?", "Apply correction", "Don't do anything", QString(), 0, 1)) {
+        switch (MessageBoxQuestion(this, "MidiEditor", "Midieditor has detected overlapping notes in the file\nthat affects the currently selected notes\nOverlapped Notes Correction?", "Apply correction", "Don't do anything", QString())) {
 
             case 0: {
                 overlappedNotesCorrectionAllTracks();
@@ -2997,8 +3010,11 @@ void MainWindow::remote_VST() {
         //exit(-1);
     }
 
-
+#ifdef IS_QT5
     QMutex *Mux = new QMutex(QMutex::NonRecursive);
+#else
+    QMutex *Mux = new QMutex();
+#endif
     QSystemSemaphore * _sys_sema_in = new QSystemSemaphore("VST_IN_SemaIn" + key, 0);
     sys_sema_out = new QSystemSemaphore("VST_IN_SemaOut" + key, 0);
     sys_sema_inW = new QSystemSemaphore("VST_MAIN_SemaIn" + key, 0);

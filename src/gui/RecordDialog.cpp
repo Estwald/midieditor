@@ -171,7 +171,8 @@ void RecordDialog::enter()
 
         // first enlarge the file ( last event + 1000 ms)
         QMultiMap<int, MidiEvent*>::iterator it = _data.end();
-        it--;
+        if (!_data.isEmpty())
+            it--;
         int minLength = it.key() + 1000;
         if (minLength > _file->maxTime()) {
             _file->setMaxLengthMs(minLength);

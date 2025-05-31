@@ -94,7 +94,7 @@ void Terminal::execute(QString startString, QString inPort[], QString outPort[])
 
 void Terminal::setOutport(int port, QString device)
 {
-    if(port < 0 || port > MAX_OUTPUT_DEVICES) return;
+    if((port < 0) || (port > MAX_OUTPUT_DEVICES)) return;
 
     _outPort[port] = device;
     if(MidiOutput::setOutputPort(_outPort[port], port))
@@ -115,7 +115,9 @@ void Terminal::processStarted()
         }
     }
 
+#ifdef USE_FLUIDSYNTH
     if(!MidiOutput::FluidSynthTracksAuto)
+#endif
         for(int n = 0; n < MAX_OUTPUT_DEVICES; n++) {
             if(MidiOutput::AllTracksToOne && n != 0)
                 break;
@@ -148,7 +150,6 @@ void Terminal::processStarted()
     // if not both are set, try again in 1 second
     if ((try_output) || (try_input)) {
         QTimer* timer = new QTimer();
-        if(!timer)
             ERROR_CRITICAL_NO_MEMORY();
         connect(timer, SIGNAL(timeout()), this, SLOT(processStarted()));
         timer->setSingleShot(true);

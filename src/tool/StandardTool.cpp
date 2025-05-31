@@ -199,7 +199,7 @@ bool StandardTool::press(bool leftClick)
         }
 
         // others channels
-        if(ch >= 0)
+        if(ch >= 0) {
             foreach (MidiEvent* ev, *(matrixWidget->activeEvents())) {
                 if(ev->channel() == ch)
                     continue;
@@ -304,6 +304,8 @@ bool StandardTool::press(bool leftClick)
                     }
                 }
             }
+
+        }
 
         if (event) {
 

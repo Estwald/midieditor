@@ -28,6 +28,7 @@ SingleNotePlayer::SingleNotePlayer()
     playing = false;
     _track_index = 0;
     offMessage.clear();
+
     timer = new QTimer();
     timer->setInterval(SINGLE_NOTE_LENGTH_MS);
     timer->setSingleShot(true);

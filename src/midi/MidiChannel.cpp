@@ -263,7 +263,8 @@ int MidiChannel::progAtTick(int tick, MidiTrack * track)
     // search for the last ProgChangeEvent in the channel
     QMultiMap<int, MidiEvent*>::iterator it = _events->upperBound(tick);
     if (it == _events->end()) {
-        it--;
+        if (!_events->isEmpty())
+            it--;
     }
     if (_events->size()) {
         while (it != _events->begin()) {
@@ -273,7 +274,8 @@ int MidiChannel::progAtTick(int tick, MidiTrack * track)
                     return ev->program();
                 }
             }
-            it--;
+            if (!_events->isEmpty())
+                it--;
         }
     }
 
@@ -299,10 +301,12 @@ int MidiChannel::progBankAtTick(int tick, int *bank, MidiTrack * track)
 
     // search for the last ProgChangeEvent in the channel
     QMultiMap<int, MidiEvent*>::iterator it = _events->lowerBound(tick + 5);
-    if (it == _events->end()) {
-      it--;
-    }
 
+    if (it == _events->end()) {
+        if (!_events->isEmpty()) {
+            it--;
+        }
+    }
 
     ProgChangeEvent* ev2 = NULL;
     int default_prg = 0;
@@ -325,7 +329,8 @@ int MidiChannel::progBankAtTick(int tick, int *bank, MidiTrack * track)
                     return ev2->program();
                 }
             }
-            it--;
+            if (!_events->isEmpty())
+                it--;
             if(it == _events->begin()) fl = 1;
         }
     }

@@ -93,6 +93,22 @@ typedef struct {
 
 } VST_preset_data_type;
 
+typedef struct {
+    float frequency;       // 20Hz - 2000Hz
+    float rotationSpeedBass;   // 0.1Hz - 10Hz
+    float depthBass;           // 0.0 - 1.0 (amplitud)
+    float rotationSpeedTreble;   // 0.1Hz - 10Hz
+    float depthTreble;           // 0.0 - 1.0 (amplitud)
+    float phaseBass;
+    float phaseTreble;
+    float lastSampleLB;
+    float lastSampleRB;
+    float lastSampleLT;
+    float lastSampleRT;
+    float lastInputLT;
+    float lastInputRT;
+} LeslieSpeaker;
+
 class VST_EXT : public QThread {
     Q_OBJECT
 public:
@@ -181,6 +197,8 @@ public:
     static int VST_unload(int chan);
     static void VST_Resize(int chan, int w, int h);
     static int VST_exit();
+    static void VST_LeslieReset();
+    static void VST_LeslieEffect(float *left, float *right, float samplerate, int nsamples, LeslieSpeaker *Leslie);
     static int VST_mix(float**in, int nchans, int samplerate, int nsamples, int mode = 0);
     static int VST_isLoaded(int chan);
     static bool VST_mix_disable(bool disable);
@@ -219,6 +237,13 @@ public:
     static void VST_external_MIDIcmd(int chan, int ms, QByteArray cmd);
     static void VST_external_send_message(int chan, int message, int data1 = 0, int data2 = 0);
 
+    static bool leslieON[SYNTH_CHANS];
+    static LeslieSpeaker leslie[SYNTH_CHANS];
+
+  private:
+#if defined(__SSE2__)
+    static void VST_LeslieEffect_SSE2(float *left, float *right, float samplerate, int nsamples, LeslieSpeaker *Leslie);
+#endif
 };
 
 class VST_chan: public QDialog

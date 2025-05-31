@@ -31,7 +31,9 @@
 #include <QPixmap>
 #include <QResizeEvent>
 #include <QWidget>
+#ifdef IS_QT5
 #include <QTextCodec>
+#endif
 #include "../tool/EventMoveTool.h"
 
 #undef CUSTOM_MIDIEDITOR_GUI

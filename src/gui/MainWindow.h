@@ -37,7 +37,9 @@ class ChannelListWidget;
 class ProtocolWidget;
 class EventWidget;
 class ClickButton;
+#ifdef IS_QT5
 class QStringList;
+#endif
 class QTabWidget;
 class QMenu;
 class TrackListWidget;
@@ -88,7 +90,6 @@ public:
     QTabWidget* upperTabWidget;
     QTabWidget* lowerTabWidget;
 
-    bool rightSplitterMode;
     int EventSplitterTabPos;
 
     bool shadow_selection;
@@ -121,6 +122,7 @@ signals:
     void remRecord();
     void remStop();
 public slots:
+    void decouple_splitter();
     void setChordVelocityProp();
     void velocity_accept();
     void updateAll();
@@ -353,6 +355,7 @@ private:
     QAction* ActionExportMSEQ;
 
     QSplitter* mainSplitter;
+    QSplitter* leftSplitter;
     QSplitter* rightSplitter;
 
     MatrixWidget* mw_matrixWidget;

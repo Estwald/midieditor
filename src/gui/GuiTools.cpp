@@ -1,7 +1,18 @@
 #include "GuiTools.h"
+#include <math.h>
 
 #include <QDateTime>
 #include "../midi/MidiFile.h"
+
+QString GroupBoxChecked1 = QString::fromUtf8("QGroupBox::indicator:unchecked {image: url(:/run_environment/graphics/custom/unchecked.png);}\n"
+    "QGroupBox::indicator:checked {image: url(:/run_environment/graphics/custom/checked.png);}\n"
+    "QGroupBox::title {subcontrol-origin: margin; left: 6px;\n"
+    "subcontrol-position: top left; padding: 0 2px; }");
+
+QString GroupBoxChecked2 = QString::fromUtf8("QGroupBox::indicator:unchecked {image: url(:/run_environment/graphics/custom/unchecked.png);}\n"
+    "QGroupBox::indicator:checked {image: url(:/run_environment/graphics/custom/checked.png);}\n"
+    "QGroupBox::title {subcontrol-origin: margin; left: 0px;\n"
+    "subcontrol-position: top center; padding: 0 2px; }");
 
 void msDelay(int ms) {
 
@@ -40,7 +51,7 @@ bool _QPushButtonE2::event(QEvent *event) {
 /* QDialE                                                                  */
 /***************************************************************************/
 
-QDialE::QDialE(QWidget* parent) : QDial(parent) {
+QDialE::QDialE(QWidget* parent, qdiale_type type, int steps) : QDial(parent) {
 
     time_update = NULL;
     is_enter = false;
@@ -52,6 +63,7 @@ QDialE::QDialE(QWidget* parent) : QDial(parent) {
                                           "border-radius: 8px;\n"
                                           "border-color: #508f60;\n"
                                           "font: bold 12px;\n"
+                                          "color: black;"
                                           ));
     but1->setText("-");
     but1->setAutoRepeat(true);
@@ -64,6 +76,7 @@ QDialE::QDialE(QWidget* parent) : QDial(parent) {
                                           "border-radius: 8px;\n"
                                           "border-color: #508f60;\n"
                                           "font: bold 12px;\n"
+                                          "color: black;"
                                           ));
     but2->setText("+");
     but2->setAutoRepeat(true);
@@ -72,14 +85,54 @@ QDialE::QDialE(QWidget* parent) : QDial(parent) {
     but2->setVisible(false);
 
     connect(but1, &_QPushButtonE2::clicked, this, [=](bool)
-            {
-                setValue(value() - 1);
-            });
+    {
+        setValue(value() - steps);
+    });
 
     connect(but2, &_QPushButtonE2::clicked, this, [=](bool)
-            {
-                setValue(value() + 1);
-            });
+    {
+        setValue(value() + steps);
+    });
+
+    flag_back = false;
+    set_notch = 0;
+
+    switch(type) {
+      case QDIALE_GRAY_NOTCH_BLACKDOT:
+      case QDIALE_GRAY_NOTCH_BLACKLINE:
+        flag_back = true;
+        set_notch = (type == QDIALE_GRAY_NOTCH_BLACKDOT) ? 1 : 2;
+        m_background = QPixmap(":/run_environment/graphics/custom/dial1.png");
+        break;
+      case QDIALE_BLACK_NOTCH_BLACKDOT:
+      case QDIALE_BLACK_NOTCH_BLACKLINE:
+        flag_back = true;
+        set_notch = (type == QDIALE_BLACK_NOTCH_BLACKDOT) ? 1 : 2;
+        m_background = QPixmap(":/run_environment/graphics/custom/dial2.png");
+        break;
+      case QDIALE_GREEN_NOTCH_BLACKLINE:
+        flag_back = true;
+        set_notch = 2;
+        m_background = QPixmap(":/run_environment/graphics/custom/dial3.png");
+        break;
+
+      case QDIALE_GRAY_NOTCH_WHITEDOT:
+      case QDIALE_GRAY_NOTCH_WHITELINE:
+        flag_back = true;
+        set_notch = (type == QDIALE_GRAY_NOTCH_WHITEDOT) ? 3 : 4;
+        m_background = QPixmap(":/run_environment/graphics/custom/dial1.png");
+        break;
+      case QDIALE_BLACK_NOTCH_WHITEDOT:
+      case QDIALE_BLACK_NOTCH_WHITELINE:
+        flag_back = true;
+        set_notch = (type == QDIALE_BLACK_NOTCH_WHITEDOT) ? 3 : 4;
+        m_background = QPixmap(":/run_environment/graphics/custom/dial2.png");
+        break;
+      default:
+        break;
+    }
+    //setBackgroundImage(QPixmap(":/run_environment/graphics/custom/dial2.png"));
+
 }
 
 QDialE::~QDialE() {
@@ -97,6 +150,7 @@ void QDialE::setGeometry(const QRect& r) {
 
     if(!time_update) {
         time_update= new QTimer(this);
+
         time_update->setSingleShot(false);
 
         connect(time_update, &QTimer::timeout, this, [=]()
@@ -146,22 +200,116 @@ void QDialE::mousePressEvent(QMouseEvent* event) {
 bool QDialE::event(QEvent *event) {
 
     if(event->type() == QEvent::Leave) {
-        time_update->stop();
+        if(time_update)
+            time_update->stop();
         is_enter = false;
-        time_update->start(100);
+        if(time_update)
+            time_update->start(100);
     }
-
 
     if(event->type() == QEvent::Enter) {
-        time_update->stop();
+        if(time_update)
+            time_update->stop();
         is_enter = true;
-        time_update->start(100);
+        if(time_update)
+            time_update->start(100);
 
     }
+
 
     return QDial::event(event);
 }
 
+void QDialE::paintEvent(QPaintEvent *event)
+{
+
+    if(!flag_back) {
+        QDial::paintEvent(event);
+        return;
+    }
+
+
+    float alpha = this->isEnabled() ? 1.0f : 0.5f;
+
+    int centerx= width() / 2;
+    int centery= height() / 2;
+
+    int v = value() - minimum();
+    int rank = maximum() - minimum();
+    if(rank == 0) rank = 1;
+    if(v < 0) v = 0;
+    if(v > rank) v = rank;
+    rank++;
+
+    #define PIX2 6.28318530f
+
+    float PI45 = PIX2 / 12.0f;
+
+    double step1 = (double) (((int) ((((double) rank) / this->notchTarget()) + 0.5)));
+
+    double step = ((PIX2 - PI45 * 2.0f)/ step1);
+
+    QPainter painter(this);
+    painter.setOpacity(alpha);
+
+    if(set_notch < 3) {
+        painter.setPen(QColor(0x20, 0x20, 0x20));
+        painter.setBrush(QColor(0x20, 0x20, 0x20));
+    } else {
+        painter.setPen(QColor(0xd0, 0xd0, 0xd0));
+        painter.setBrush(QColor(0xd0, 0xd0, 0xd0));
+    }
+
+    int size1 = (width() < height() ? width() : height()) *93/100;
+
+    float rad1 = (float) (size1/2);
+    float rad2 = rad1 - 4.0f;
+
+    if(set_notch != 0) {
+
+        for(double a = PI45; a <= PIX2; a+= step) {
+
+            bool bk = false;
+
+            if(a >= (PIX2 - PI45)) {
+                a = PIX2 - PI45;
+                bk = true;
+            }
+
+            float sin1 = -sinf(a);
+            float cos1 = cosf(a);
+            int x1 = rad1 * sin1 + (float) centerx;
+            int y1 = rad1 * cos1 + (float) centery;
+            int x2 = rad2 * sin1 + (float) centerx;
+            int y2 = rad2 * cos1 + (float) centery;
+            painter.setRenderHint(QPainter::Antialiasing);
+
+            if(set_notch & 1)
+                painter.drawEllipse(x1, y1, 2, 2);
+            else
+                painter.drawLine(x1,y1,x2,y2);
+
+
+            if(bk) break;
+        }
+
+    }
+
+    painter.translate(centerx, centery);
+
+    painter.rotate(30 + 300 *v/rank);
+
+    int size2 = (width() < height() ? width() : height()) *80/100;
+    if(size2 & 1) size2++;
+
+
+    painter.drawPixmap(-size2/2, -size2/2, size2, size2, m_background);
+
+    painter.rotate(0);
+
+
+
+}
 /***************************************************************************/
 /* QPushButtonE                                                            */
 /***************************************************************************/
@@ -175,6 +323,9 @@ void QPushButtonE::paintEvent(QPaintEvent* event) {
     // Estwald Color Changes
     QPainter *p = new QPainter(this);
     if(!p) return;
+
+    float alpha = this->isEnabled() ? 1.0f : 0.5f;
+    p->setOpacity(alpha);
 
     if(this->isChecked())
         p->fillRect(8, (height() - 8) / 2, 8, 8, Qt::green);
@@ -319,6 +470,7 @@ QPedalE::QPedalE(QWidget* parent, QString title) : QGroupBox(parent) {
     invTCheck->setText("INVERT");
 
     time_update = new QTimer(this);
+
     time_update->setSingleShot(true);
 
     connect(time_update, &QTimer::timeout, this, [=]()
@@ -414,3 +566,243 @@ chooseCC::chooseCC(QDialog *parent, int val) : QDialog(parent, Qt::WindowSystemM
 
 }
 
+/***************************************************************************/
+/* QSliderE                                                                */
+/***************************************************************************/
+
+QSliderE::QSliderE(QWidget* parent, int nticks, qslider_type type) : QSlider(parent) {
+
+    this->type = type;
+    this->nticks = nticks;
+
+    QColor color;
+
+    switch(type / 2) {
+        case 1:
+            color = QColor(0x0, 0x50, 0xff);
+            break;
+        case 2:
+            color = QColor(0xff, 0x30, 0x0);
+            break;
+        case 3:
+            color = QColor(0x40, 0xff, 0x40);
+            break;
+        case 4:
+            color = QColor(0xff, 0xff, 0x40);
+            break;
+        default:
+            color = QColor(0xff, 0xff, 0xff);
+            break;
+    }
+
+
+    m_knob = QPixmap(":/run_environment/graphics/custom/slider1.png");
+
+    QPainter painter(&m_knob);
+    painter.setPen(color);
+    painter.setBrush(color);
+    painter.drawRect(0, m_knob.height()/2 - 9, m_knob.width(), 15);
+    painter.end();
+    m_knobh = m_knob.transformed(QTransform().rotate(90));
+
+}
+
+
+void QSliderE::setGeometry(const QRect& r) {
+    QSlider::setGeometry(r);
+
+    setStyleSheet(QString::asprintf("QSlider::groove { background: transparent; width: %ipx; }\nQSlider::handle {width:%ipx;height:%ipx;}\n",
+                                      width(),width(),width()));
+}
+
+void QSliderE::setOrientation(Qt::Orientation o) {
+
+    QSlider::setOrientation(o);
+
+    if(o == Qt::Horizontal) {
+
+        setStyleSheet(QString::asprintf("QSlider::groove { background: transparent; height: %ipx; }\nQSlider::handle {width:%ipx;height:%ipx;}\n",
+                                         height(), height(), height()));
+
+    } else {
+
+        int w = (type & 1) ? width() * 2 / 3 : width();
+        setStyleSheet(QString::asprintf("QSlider::groove { background: transparent; width: %ipx; height:%ipx;}\nQSlider::handle {width:%ipx;height:%ipx;}\n",
+                                        width(), height(), width(), w));
+    }
+
+    update();
+
+}
+
+void QSliderE::paintEvent(QPaintEvent *) {
+
+    QPainter painter(this);
+
+    if(nticks < 3)
+      nticks = 3;
+
+    if(!(nticks & 1))
+        nticks++;
+
+    int alpha = this->isEnabled() ? 255 : 128;
+    painter.setOpacity(((float) alpha)/255.0f);
+
+    if(orientation() != Qt::Horizontal) {
+
+        int knobw = width();
+        int knobh = (type & 1) ? width() * 2 / 3 : width();
+
+        int len = (this->maximum() - this->minimum() + 1);
+
+        float step = ((float) (height() - knobh)) / ((float) (nticks - 1));
+
+        if(len) {
+
+            int y =  knobh / 2;
+            int ymid =  knobh / 2 + ((float) (nticks / 2)) * step;
+            int x1 = 0;
+            int x2 = width() - 4;
+
+            int pen = 0;
+
+            painter.setPen(QColor(0xc0, 0xc0, 0xc0));
+
+            for(int n = 0; n < nticks; n++) {
+
+                int y1 = y + ((int) (step * ((float) n)));
+
+                if(y1>= (ymid - 1) && y1 <= (ymid + 1)) {
+
+                    if(!pen) painter.setPen(QColor(0xf0, 0xc0, 0x00));
+                    pen = 1;
+
+                } else {
+
+                    if(pen) painter.setPen(QColor(0xc0, 0xc0, 0xc0));
+                    pen = 0;
+
+                }
+
+                painter.drawLine(x1, y1, x1 + 4, y1);
+                painter.drawLine(x2, y1, x2 + 4, y1);
+
+            }
+
+        }
+
+        painter.setPen(QColor(0x20, 0x20, 0x20));
+        painter.setBrush(QColor(0x20, 0x20, 0x20));
+        painter.drawRect(width()/2 - 3, 0, 5, height());
+        painter.setBrush(QColor(0x60, 0x60, 0x60));
+        painter.drawRect(width()/2 - 1, 0, 2, height());
+
+        int y = (height() - knobh) * (len - (value() - minimum())) / len;
+        painter.drawPixmap(0, y, knobw, knobh, m_knob);
+
+    } else {
+
+        int knobw = (type & 1) ? height() * 2 / 3 : height();
+
+        int knobh = height() * 3 / 4;
+
+        int large = ((width() - knobw) / 2) * 2;
+
+        int len = (this->maximum() - this->minimum() + 1);
+
+        float step = ((float) (width() - knobw)) /  ((float) (nticks - 1));
+
+        if(len) {
+
+            int x = knobw / 2;
+            int xmid =  knobw / 2 + (nticks / 2) * step;
+            int y1 = height() - 4;
+
+            int pen = 0;
+
+            painter.setPen(QColor(0xc0, 0xc0, 0xc0));
+
+            for(int n = 0; n < nticks; n++) {
+
+                int x1 = x + ((int) (step * ((float) n)));
+
+                if(x1>= (xmid - 1) && x1 <= (xmid + 1)) {
+
+                    if(!pen) painter.setPen(QColor(0xf0, 0xc0, 0x00));
+                    pen = 1;
+
+                } else {
+
+                    if(pen) painter.setPen(QColor(0xc0, 0xc0, 0xc0));
+                    pen = 0;
+
+                }
+
+                painter.drawLine(x1, y1 , x1, y1 + 4);
+
+            }
+
+        }
+
+        int hh = height() * 3 / 8;
+
+        painter.setPen(QColor(0x20, 0x20, 0x20));
+        painter.drawRect(0, hh - 3, width(), 6);
+        painter.setBrush(QColor(0x60, 0x60, 0x60));
+        painter.drawRect(0, hh - 1, width(), 2);
+
+        int x = (large) * (len - (maximum() - value())) / len;
+        painter.drawPixmap(x, 0, knobw, knobh, m_knobh);
+    }
+
+}
+
+
+int MessageBoxinformation(QWidget *w, const QString& title, const QString& text, const QString Accept, const QString Destruct, const QString Cancel) {
+    QMessageBox msgBox(w);
+    msgBox.setWindowTitle(title);
+    msgBox.setText(text);
+    msgBox.setIcon(QMessageBox::Information);
+
+    QPushButton *saveButton = Accept.isEmpty() ? NULL : msgBox.addButton(Accept, QMessageBox::AcceptRole);
+    QPushButton *discardButton = Destruct.isEmpty() ? NULL : msgBox.addButton(Destruct, QMessageBox::DestructiveRole);
+    QPushButton *cancelButton = Cancel.isEmpty() ? NULL : msgBox.addButton(Cancel, QMessageBox::RejectRole);
+
+    msgBox.setDefaultButton(cancelButton);
+
+    msgBox.exec();
+
+    if (msgBox.clickedButton() == saveButton) {
+        return 0;
+    } else if (msgBox.clickedButton() == discardButton) {
+        return 1;
+    }
+
+    return 2;
+
+}
+
+
+int MessageBoxQuestion(QWidget *w, const QString& title, const QString& text, const QString Accept, const QString Destruct, const QString Cancel) {
+    QMessageBox msgBox(w);
+    msgBox.setWindowTitle(title);
+    msgBox.setText(text);
+    msgBox.setIcon(QMessageBox::Question);
+
+    QPushButton *saveButton = Accept.isEmpty() ? NULL : msgBox.addButton(Accept, QMessageBox::AcceptRole);
+    QPushButton *discardButton = Destruct.isEmpty() ? NULL : msgBox.addButton(Destruct, QMessageBox::DestructiveRole);
+    QPushButton *cancelButton = Cancel.isEmpty() ? NULL : msgBox.addButton(Cancel, QMessageBox::RejectRole);
+
+    msgBox.setDefaultButton(cancelButton);
+
+    msgBox.exec();
+
+    if (msgBox.clickedButton() == saveButton) {
+        return 0;
+    } else if (msgBox.clickedButton() == discardButton) {
+        return 1;
+    }
+
+    return 2;
+
+}

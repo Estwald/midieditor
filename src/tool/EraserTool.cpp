@@ -163,21 +163,23 @@ void EraserTool::draw(QPainter* painter)
     painter->setPen(Qt::black);
     painter->setBrush(Qt::black);
 
-    if(Tool::selectCurrentChanOnly)
-    foreach (MidiEvent* ev, active) {
+    if(Tool::selectCurrentChanOnly) {
+        foreach (MidiEvent* ev, active) {
 
-        if(ev->channel() != ch)
-            continue;
-
-        if(!(!ev->file()->MultitrackMode ||
-                          (ev->file()->MultitrackMode && ev->track()->number() == NewNoteTool::editTrack())))
+            if(ev->channel() != ch)
                 continue;
 
+            if(!(!ev->file()->MultitrackMode ||
+                              (ev->file()->MultitrackMode && ev->track()->number() == NewNoteTool::editTrack())))
+                    continue;
 
-        if (pointInRect(mouseX, mouseY, ev->x(), ev->y(), ev->x() + ev->width(),
-                        ev->y() + ev->height())) {
 
-            painter->drawRoundedRect(ev->x(), ev->y(), ev->width(), ev->height(), 2, 2);
+            if (pointInRect(mouseX, mouseY, ev->x(), ev->y(), ev->x() + ev->width(),
+                            ev->y() + ev->height())) {
+
+                painter->drawRoundedRect(ev->x(), ev->y(), ev->width(), ev->height(), 2, 2);
+
+            }
 
         }
 

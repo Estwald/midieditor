@@ -27,7 +27,9 @@
 class MidiEvent;
 class RtMidiIn;
 class RtMidiOut;
+#ifdef IS_QT5
 class QStringList;
+#endif
 class SenderThread;
 
 #define MAX_OUTPUT_DEVICES 31

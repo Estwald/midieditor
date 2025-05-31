@@ -40,19 +40,26 @@ PaintWidget::PaintWidget(QWidget* parent)
 void PaintWidget::mouseMoveEvent(QMouseEvent* event)
 {
 
+#ifdef IS_QT5
+    int Mx = event->position().x();
+    int My = event->position().y();
+#else
+    int Mx = event->position().x();
+    int My = event->position().y();
+#endif
     this->mouseOver = true;
 
     if (mousePinned) {
         // do not change mousePosition but lastMousePosition to get the
         // correct move distance
         QCursor::setPos(mapToGlobal(QPoint(mouseX, mouseY)));
-        mouseLastX = 2 * mouseX - event->x();
-        mouseLastY = 2 * mouseY - event->y();
+        mouseLastX = 2 * mouseX - Mx;
+        mouseLastY = 2 * mouseY - My;
     } else {
         this->mouseLastX = this->mouseX;
         this->mouseLastY = this->mouseY;
-        this->mouseX = event->x();
-        this->mouseY = event->y();
+        this->mouseX = Mx;
+        this->mouseY = My;
     }
     if (mousePressed) {
         inDrag = true;

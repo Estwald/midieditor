@@ -414,6 +414,14 @@ void MiscWidget::mouseMoveEvent(QMouseEvent* event)
     if (!matrixWidget->midiFile())
         return;
 
+#ifdef IS_QT5
+    int Mx= event->x();
+    int My= event->y();
+#else
+    int Mx= event->position().x();
+    int My= event->position().y();
+#endif
+
     if (edit_mode == SINGLE_MODE) {
         if (mode == VelocityEditor) {
             bool above = dragging;
@@ -456,7 +464,7 @@ void MiscWidget::mouseMoveEvent(QMouseEvent* event)
 
                         if (velocity > 0) {
                             int h = (height() * velocity) / 128;
-                            if (!dragging && mouseInRect(event->x() - LEFT_BORDER_MATRIX_WIDGET, height() - h - 5, WIDTH, 10)) {
+                            if (!dragging && mouseInRect(Mx - LEFT_BORDER_MATRIX_WIDGET, height() - h - 5, WIDTH, 10)) {
                                 above = true;
                                 break;
                             }
@@ -501,13 +509,13 @@ void MiscWidget::mouseMoveEvent(QMouseEvent* event)
         if (isDrawingFreehand) {
             bool ok = true;
             for (int i = 0; i < freeHandCurve.size(); i++) {
-                if (freeHandCurve.at(i).first >= event->x()) {
+                if (freeHandCurve.at(i).first >= Mx) {
                     ok = false;
                     break;
                 }
             }
             if (ok) {
-                freeHandCurve.append(QPair<int, int>(event->x(), event->y()));
+                freeHandCurve.append(QPair<int, int>(Mx, My));
             }
         }
     }
@@ -516,6 +524,14 @@ void MiscWidget::mouseMoveEvent(QMouseEvent* event)
 
 void MiscWidget::mousePressEvent(QMouseEvent* event)
 {
+#ifdef IS_QT5
+    int Mx = event->position().x();
+    int My = event->position().y();
+#else
+    int Mx = event->position().x();
+    int My = event->position().y();
+#endif
+
     if (!matrixWidget->midiFile())
         return;
 
@@ -657,8 +673,8 @@ void MiscWidget::mousePressEvent(QMouseEvent* event)
         freeHandCurve.clear();
         isDrawingFreehand = true;
     } else if (edit_mode == LINE_MODE) {
-        lineX = event->x();
-        lineY = event->y();
+        lineX = Mx;
+        lineY = My;
         isDrawingLine = true;
     }
 
@@ -1293,7 +1309,8 @@ QList<QPair<int, int> > MiscWidget::getTrack(QList<MidiEvent*>* accordingEvents)
             if (it == channelEvents->begin()) {
                 atEnd = true;
             } else {
-                it--;
+                if (!channelEvents->isEmpty())
+                    it--;
             }
         }
     }

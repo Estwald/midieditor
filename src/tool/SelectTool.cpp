@@ -228,7 +228,7 @@ bool SelectTool::release()
         }
 
         // others channels
-        if(ch >= 0 && !Tool::selectCurrentChanOnly)
+        if(ch >= 0 && !Tool::selectCurrentChanOnly) {
             foreach (MidiEvent* event, *(matrixWidget->activeEvents())) {
                 if(event->channel() == ch)
                     continue;
@@ -261,6 +261,7 @@ bool SelectTool::release()
                     }
                 }
             }
+        }
 
     } else if (stool_type == SELECTION_TYPE_RIGHT || stool_type == SELECTION_TYPE_LEFT || stool_type == SELECTION_TYPE_CURSOR) {
         int tick = file()->tick(matrixWidget->msOfXPos(mouseX));

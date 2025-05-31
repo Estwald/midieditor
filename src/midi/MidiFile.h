@@ -73,6 +73,8 @@ class MidiFile : public QObject, public ProtocolEntry {
 
     Q_OBJECT
 
+    using ProtocolEntry::protocol;
+
 public:
     MidiFile(QString path, bool* ok, QStringList* log = 0);
     MidiFile();
@@ -92,8 +94,8 @@ public:
     int endTick();
     int timeMS(int midiTime);
     int measure(int startTick, int* startTickOfMeasure ,int* endTickOfMeasure);
-    QMap<int, MidiEvent*>* tempoEvents();
-    QMap<int, MidiEvent*>* timeSignatureEvents();
+    QMultiMap<int, MidiEvent*>* tempoEvents();
+    QMultiMap<int, MidiEvent*>* timeSignatureEvents();
     void calcMaxTime();
     int tick(int ms);
     int tick(int startms, int endms, QList<MidiEvent*>** events, int* endTick, int* msOfFirstEvent);
