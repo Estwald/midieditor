@@ -5,7 +5,7 @@ MYPATH=$1
 SHARED=$2
 CMD=$3
 
-FSVERSION="2.4.6"
+FSVERSION="2.4.7"
 
 if [[ "$CMD" == "" ]]; then
 	echo Error! CMD empty
