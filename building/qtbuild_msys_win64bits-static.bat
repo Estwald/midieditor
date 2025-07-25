@@ -69,7 +69,7 @@ set PATH=%MY_COMPILER%;%MY_QT_LIB%\bin;%MY_TOOLS%;%PATH%
 	echo.
 	choice /c 123450 /n /m "Press 1, 2, 3, 4, 5 or 0:"
 
-	if ERRORLEVEL 5 (
+	if ERRORLEVEL 6 (
 		echo Goodbye !
 
 	) else if ERRORLEVEL 5 (
