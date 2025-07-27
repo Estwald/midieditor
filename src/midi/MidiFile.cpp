@@ -1377,6 +1377,9 @@ QString MidiFile::controlChangeName(int control)
     case 8: {
         return "Balance (MSB) ";
     }
+    case 9: {
+        return "Midi Editor CC Wah-Wah";
+    }
 
     case 10: {
         return "Pan (MSB)";
