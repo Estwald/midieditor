@@ -74,6 +74,7 @@ extern QSystemSemaphore *sys_sema_inW;
 #define GET_FILTER_GAIN 2
 #define GET_FILTER_RES  4
 
+#define PLAYER_STATUS_WAV_ERROR_SYNTH   -2
 #define PLAYER_STATUS_WAV_ERROR   -1
 #define PLAYER_STATUS_WAV_INIT     0
 #define PLAYER_STATUS_WAV_RUN      1

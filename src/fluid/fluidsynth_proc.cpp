@@ -219,7 +219,7 @@ int fluidsynth_proc::change_synth(int freq, int flag) {
         status_fluid_err = 1; disabled = 1;
         set_error(666, "FATAL ERROR: error in new_fluid_settings()");
     }
-//sasa
+
     if(!disabled && flag == 1) {
         //qWarning("send volume...\n");
         for(int n=0; n < SYNTH_CHANS; n++) {
@@ -595,7 +595,7 @@ void fluidsynth_proc::set_error(int level, const char * err) {
 }
 
 int strange = 0;
-//sasa
+
 int fluidsynth_proc::SendMIDIEvent(QByteArray array, int track)
 {
     int type= array[0] & 0xf0;
@@ -665,6 +665,9 @@ int fluidsynth_proc::SendMIDIEvent(QByteArray array, int track)
 
                 VST_proc::VST_MIDIvol(channel + desp_channelVST, array[2]);
                 return 0;
+            } else if((unsigned) array[1] == 9) { // wah wah control of channel
+                VST_proc::Wah_Wah_Control(channel + desp_channelVST, array[2]);
+                return 0;
             } else if((unsigned) array[1] >= 20 && (unsigned) array[1] <= 31) {
 
             } else VST_proc::VST_MIDIcmd(channel + desp_channelVST,
@@ -678,6 +681,9 @@ int fluidsynth_proc::SendMIDIEvent(QByteArray array, int track)
 
             VST_proc::VST_MIDIvol(channel + desp_channelVST, array[2]);
 
+        } else if((unsigned) array[1] == 9) { // wah wah control of channel
+            VST_proc::Wah_Wah_Control(channel + desp_channelVST, array[2]);
+            return 0;
         } else if((unsigned) array[1] == 11)  //ignore song expresion
             array[2]= synth_chanvolume[channel + desp_channel];
 
@@ -1154,6 +1160,7 @@ void fluidsynth_proc::stop_audio(bool stop) {
     if(stop) { // stops the audio loop
 
         block_midi_events = 1;
+        msDelay(10);
 
         if(mixer) {
 
@@ -1162,10 +1169,11 @@ void fluidsynth_proc::stop_audio(bool stop) {
             wait_signal = 2;   
             *p = 0;
             audio_waits.wakeOne();
+            msDelay(10);
 
             int count = 0;
             while(*p != 2) {// waits to sound thread receives the signal
-                msDelay(5);
+                msDelay(10);
                 count++;
                 if(count > 1000) {
                     ERROR_CRITICAL2("stop_audio() iswaiting_signal fail");
@@ -1177,14 +1185,14 @@ void fluidsynth_proc::stop_audio(bool stop) {
 
             count = 0;
             while(!mixer->isFinished()) {
-                msDelay(5);
+                msDelay(10);
                 count++;
                 if(count > 1000) {
                     ERROR_CRITICAL2("stop_audio() mixer->isFinished fail");
                     break;
                 }
             }
-            msDelay(5);
+            msDelay(10);
 
             delete mixer;
             mixer = NULL;
@@ -1452,7 +1460,7 @@ void fluid_Thread::run()
 
          // polling method to change the default device (only if it meets the sample rate)
 
-         if(_proc->current_sound->is_default_device) {
+         if(!(_proc && _proc->synth && _proc->_player_wav) &&_proc->current_sound->is_default_device) {
 
 #ifdef IS_QT5
              if(realdevname != QAudioDeviceInfo::defaultOutputDevice().deviceName()) {
@@ -1484,7 +1492,8 @@ void fluid_Thread::run()
          }
 #endif
 
-         if(defaultchanged || (output_float != _proc->output_float || _err_sound_flag)) {
+         if(!(_proc && _proc->synth && _proc->_player_wav) &&
+                 (defaultchanged || (output_float != _proc->output_float || _err_sound_flag))) {
 
              int outf =_proc->output_float;
 
@@ -1535,7 +1544,7 @@ void fluid_Thread::run()
                  else
                      outf = 0;
 
-                qWarning("wow floar %i", outf);
+                //qWarning("wow float %i", outf);
 
                 _proc->output_float = output_float = outf;
 
@@ -1563,7 +1572,7 @@ void fluid_Thread::run()
                     }
 
                 } else
-                _proc->output_float = output_float;
+                    _proc->output_float = output_float;
              }
 
          }
@@ -1606,21 +1615,31 @@ void fluid_Thread::run()
 
          if(_proc->synth) {
              err = fluid_synth_process(_proc->synth, fluid_out_samples, n_fx_chan * n_fx_groups * 2, fx, n_aud_chan * 2, dry);
-
          }
 
          _proc->mutex_fluid.unlock();
-         if(err) {
 
-             MSG_ERR("Error! fluid_Thread: fluid_synth_process()");
+         if(err) {
+             if(_proc->synth)
+                MSG_ERR("Error! fluid_Thread: fluid_synth_process()");
+
+             if(_proc && _proc->synth && _proc->_player_wav) { // alternative for WAV files
+
+                 _proc->_player_status = PLAYER_STATUS_WAV_ERROR_SYNTH;
+                 QString serr = QString::number(err);
+                 QMessageBox::information(NULL, "Error! fluid_Thread: fluid_synth_process()", serr);
+
+
+             }
+
              _proc->lock_audio.unlock();
+
              continue;
          }
 
          // reset audio buffer
          memset(mix_buffer, 0, fluid_out_samples * 2 * sizeof(float));
          int n, m;
-
 
          // VST_mix
          if(vst_fluid_lock && vst_fluid_lock->tryLock()) {
@@ -1632,13 +1651,16 @@ void fluid_Thread::run()
              VST_proc::VST_mix(dry, /*n_aud_chan*/PRE_CHAN, (_proc->_player_wav) ? _proc->_wave_sample_rate : _proc->_sample_rate, fluid_out_samples, 2);
 
              // Leslie effect
-             for(int m = 0; m < (OUT_CHANS * 2); m += 2) {
+             for(int m = 0; m < (n_aud_chan * 2); m += 2) {
 
                  if(VST_proc::leslieON[m>>1]) {
 
                      VST_proc::VST_LeslieEffect(dry[m], dry[m + 1], (_proc->_player_wav) ? _proc->_wave_sample_rate : _proc->_sample_rate, fluid_out_samples, &VST_proc::leslie[m>>1]);
                  }
+
+                 VST_proc::VST_Wah_Wah(m>>1, dry[m], dry[m + 1], (_proc->_player_wav) ? _proc->_wave_sample_rate : _proc->_sample_rate, fluid_out_samples);
              }
+
              vst_fluid_lock->unlock();
          }
 
@@ -1788,15 +1810,17 @@ void fluid_Thread::run()
 
                  if(_proc->_player_status == PLAYER_STATUS_WAV_BREAK || _proc->_player_status <= PLAYER_STATUS_WAV_ERROR)
 
-                 len = -1;
+                    len = -1;
 
                  else {
 
                      if(_proc->wavDIS) {
                          len = 0;
                          break;
-                     } else
-                         len = _proc->_player_wav->write(((const char  *) buff + pos), total);  
+                     } else {
+                         len = _proc->_player_wav->write(((const char  *) buff + pos), total);
+                         _proc->_player_wav->flush();
+                     }
                  }
 
                  if(len < 0) {
@@ -1804,8 +1828,9 @@ void fluid_Thread::run()
                      if(_proc->_player_status >= PLAYER_STATUS_WAV_INIT)
                          _proc->_player_status = PLAYER_STATUS_WAV_BREAK;
 
-                 } else
+                 } else {
                      _proc->total_wav_write += len;
+                 }
 
              } else {// write audio stream
 
@@ -2598,7 +2623,7 @@ int fluidsynth_proc::MIDtoWAV(QFile *wav, QWidget *parent, MidiFile* file) {
         if(counter > 20) break;
     }
 
-    if(*p < PLAYER_STATUS_WAV_ERROR) {
+    if(*p <= PLAYER_STATUS_WAV_ERROR) {
         *p = PLAYER_STATUS_WAV_BREAK;
         emit message_timeout("Error!", "Fluidsynth sequencer initialization failed");
         msDelay(250);
@@ -2628,6 +2653,9 @@ int fluidsynth_proc::MIDtoWAV(QFile *wav, QWidget *parent, MidiFile* file) {
         *p = PLAYER_STATUS_WAV_BREAK;
         //QMessageBox::critical(NULL, "Error!", "Aborted!");
         emit message_timeout("Error!", "Aborted!");
+    } else if(*p == PLAYER_STATUS_WAV_BREAK || *p == PLAYER_STATUS_WAV_ERROR_SYNTH) {
+        *p = PLAYER_STATUS_WAV_BREAK;
+        emit message_timeout("Internal Error!", "Aborted!");
     }
 
     counter = 0;
@@ -2718,14 +2746,13 @@ void ProgressDialog::reject() {
 
 
 static QSemaphore *semaf;
-static int semaf_cnt = 0;
 
 /* sequencer callback */
 static void seq_callback(unsigned int /*time*/, fluid_event_t* /*event*/, fluid_sequencer_t* /*seq*/, void* /*data*/) {
 
-    if(!semaf_cnt)
+    if(!semaf->available())
         semaf->release(1);
-    semaf_cnt++;
+
 }
 
 #define sequence_command(x) {fluid_event_t *evt = new_fluid_event();\
@@ -2833,7 +2860,7 @@ int fluid_Thread_playerWAV::init_sequencer_player(){
     }
 
     // create callback semaphore
-    semaf_cnt = 0;
+
     semaf = new QSemaphore(1);
     if(!semaf) {
         fluid_sequencer_unregister_client(sequencer, mySeqID);
@@ -2969,13 +2996,12 @@ static bool update_prg[SYNTH_CHANS]; // real time prg change event
 int fluid_Thread_playerWAV::sequencer_player(){
 
     int last_time = sequencer_tick_pos+SEQ_FRAME;
+    bool fseqcallbk = false;
 
     semaf->acquire(1); // waiting the callback...
-    semaf_cnt = 0;
-/*
-    int cur_time = fluid_sequencer_get_tick(sequencer);
-    qWarning("cur tick %i %i", cur_time, sequencer_tick_pos);
-*/
+
+    //int cur_time = fluid_sequencer_get_tick(sequencer);
+    //qWarning("cur tick %i %i", cur_time, sequencer_tick_pos);
 
 // run()
 
@@ -2994,7 +3020,7 @@ int fluid_Thread_playerWAV::sequencer_player(){
         if(direct_output) {
             direct_output = false;
             semaf->acquire(1); // waiting the callback...
-            semaf_cnt = 0;
+            fseqcallbk = false;
         }
 
         do {
@@ -3032,10 +3058,13 @@ int fluid_Thread_playerWAV::sequencer_player(){
         // sending previous events if it is required
         if(last_time_loop >= 0 && direct_output) {
             int fluid_res;
+            fseqcallbk = true;
             sequence_callback(last_time); // I needs to send previous events
             if(fluid_res < 0) return fluid_res;
+
             semaf->acquire(1); // waiting the callback...
-            semaf_cnt = 0;
+            fseqcallbk = false;
+            direct_output = false;
         }
 
         // SysEx is direct event
@@ -3062,10 +3091,13 @@ int fluid_Thread_playerWAV::sequencer_player(){
             sendCommand(event, sendPosition + 1, track);
         }
 
+
         // events from callback
-        foreach (MidiEvent* event, onEv) {
+
 /* For some stupid reason fluidsynth has problems when changing banks and programs.
-   Sending program change just before first note works */
+    Sending program change just before first note works */
+
+        foreach (MidiEvent* event, onEv) {
 
             int chan = event->channel();
             int track = event->file()->MultitrackMode ? event->track()->fluid_index() : 0;
@@ -3082,6 +3114,7 @@ int fluid_Thread_playerWAV::sequencer_player(){
             sendCommand(event, sendPosition + 1, track);
         }
 
+
         last_time = sendPosition + 1;
         last_time_loop = last_time;
 
@@ -3091,8 +3124,10 @@ int fluid_Thread_playerWAV::sequencer_player(){
             last_time_loop = -1; // no previous
             last_sended = last_time;
             int fluid_res;
+
+            fseqcallbk = true;
             sequence_callback(last_time); // I needs to send previous events
-            if(fluid_res < 0) return fluid_res;;
+            if(fluid_res < 0) return fluid_res;
 
         }
 
@@ -3104,8 +3139,13 @@ int fluid_Thread_playerWAV::sequencer_player(){
 
     if(last_sended != last_time) {
 
-        sequence_callback(sequencer_tick_pos);
-        if(fluid_res < 0) return fluid_res;
+        if(!fseqcallbk) {
+
+            fseqcallbk = true;
+            sequence_callback(sequencer_tick_pos);
+            if(fluid_res < 0) return fluid_res;
+
+        }
     }
 
     if(it == file_events->end() /*|| sequencer_tick_pos > 60000*/) {
@@ -3116,7 +3156,7 @@ int fluid_Thread_playerWAV::sequencer_player(){
         sequencer_tick_end += SEQ_FRAME; //last_time;
 
         semaf->acquire(1); // waiting the callback...
-        semaf_cnt = 0;
+        fseqcallbk = false;
 
         for(int n = 0; n < SYNTH_CHANS; n++) {
 
@@ -3132,14 +3172,16 @@ int fluid_Thread_playerWAV::sequencer_player(){
         if(sequencer_tick_end < sequencer_note_tick_end)
             sequencer_tick_end = sequencer_note_tick_end;
 
+        fseqcallbk = true;
         sequence_callback(sequencer_tick_end);
 
         if(fluid_res < 0) return fluid_res;
 
         semaf->acquire(1); // waiting the callback...
-        semaf_cnt = 0;
+        fseqcallbk = false;
         return 1;
     }
+
     return 0;
 }
 
@@ -3172,18 +3214,31 @@ void fluid_Thread_playerWAV::run()
                     _proc->_player_status == PLAYER_STATUS_WAV_NOTWRITE) { // playing
 
                 int ret = sequencer_player();
+                //qWarning("sequencer_player() %i", ret);
 
-                if(_proc->_player_status == PLAYER_STATUS_WAV_BREAK) break; // external error
+                if(_proc->_player_status == PLAYER_STATUS_WAV_BREAK) {
+                    emit endBar();
+                    msDelay(1000);
+                    break; // external error
+                }
 
                 if(ret == 1) {
                     _proc->_player_status = PLAYER_STATUS_WAV_END; break; // end of file
                 }
+
                 if(ret < 0) {
-                    _proc->_player_status = PLAYER_STATUS_WAV_BREAK; break; // error!
+                    _proc->_player_status = PLAYER_STATUS_WAV_BREAK;
+                    emit endBar();
+                    msDelay(1000);
+                    break; // error!
                 }
             }
 
-            if(_proc->_player_status == PLAYER_STATUS_WAV_BREAK) break; // external error
+            if(_proc->_player_status == PLAYER_STATUS_WAV_BREAK || _proc->_player_status == PLAYER_STATUS_WAV_ERROR_SYNTH) {
+                emit endBar();
+                msDelay(1000);
+                break; // external error
+            }
 
             if(_proc->_bar) {
                 int a = 100 * sequencer_tick_pos / sequencer_tick_end;
