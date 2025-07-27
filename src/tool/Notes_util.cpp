@@ -2053,7 +2053,6 @@ void MainWindow::FluidSaveAsMp3() {
 
     if(wav->open(QIODevice::WriteOnly | QIODevice::Truncate)) {
 
-
         //////////
         QString oldPath = file->path();
 
