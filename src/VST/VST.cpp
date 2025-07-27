@@ -1702,7 +1702,9 @@ void VST_proc::VST_show(int chan, bool show) {
 
     if(!VST_preset_data[chan] ||
         (!VST_preset_data[chan]->vstEffect && !VST_preset_data[chan]->external) ||
-            !VST_preset_data[chan]->vstWidget) return;
+            !VST_preset_data[chan]->vstWidget) {
+            return;
+        }
 
     _block_timer2 = 1;
 
@@ -1712,8 +1714,13 @@ void VST_proc::VST_show(int chan, bool show) {
 
 
     if(VST_preset_data[chan]->vstEffect) {
-        if(!VST_preset_data[chan]->closed)
+        if(!VST_preset_data[chan]->closed) {
+            // hack VST close
+            VST_preset_data[chan]->vstWidget->update();
+            msDelay(100);
             VST_proc::dispatcher(chan, effEditClose, 0, 0, (void *)((VSTDialog *) VST_preset_data[chan]->vstWidget)->subWindow->winId(), 0.0);
+        }
+
         VST_preset_data[chan]->closed = true;
         if(show) {
             VST_preset_data[chan]->vstWidget->setVisible(true);
@@ -1721,12 +1728,15 @@ void VST_proc::VST_show(int chan, bool show) {
             VST_preset_data[chan]->closed = false;
             VST_preset_data[chan]->vstWidget->showMinimized();
             VST_preset_data[chan]->vstWidget->showNormal();
-        } else
-            VST_preset_data[chan]->vstWidget->close();
+        } else {
+            if(VST_preset_data[chan]->vstWidget)
+                VST_preset_data[chan]->vstWidget->close();
+        }
 
     }
 
     _block_timer2 = 0;
+
 }
 
 
@@ -2552,7 +2562,8 @@ int VST_proc::VST_load(int chan, const QString pathModule) {
 
             QCoreApplication::processEvents();
             _block_timer2 = 1;
-            QThread::msleep(100);
+            //QThread::msleep(100);
+            MainWindow::msDelay(100);
 
             VstRect *rect = NULL;
 
@@ -2896,6 +2907,176 @@ void VST_proc::VST_LeslieEffect_SSE2(float *left, float *right, float samplerate
 }
 
 #endif
+
+//////////////////////////////////////////////////////////////////
+/// WAH-WAH Effect
+//////////////////////////////////////////////////////////////////
+
+// Initialize the effect
+
+static void wah_control_init(WahWahControl* wah, float sampleRate, float freqMin, float freqMax) {
+
+    wah->last_value = 0;
+    wah->comp = 1.0f;
+    wah->sr = sampleRate;
+    wah->freqMin = freqMin;
+    wah->freqMax = freqMax;
+    wah->currentFreq = freqMin;
+    memset(wah->xHistory, 0, sizeof(wah->xHistory));
+    memset(wah->yHistory, 0, sizeof(wah->yHistory));
+
+}
+
+// Convert the external MIDI control \[0..127] to frequency
+
+static void wah_set_position(WahWahControl* wah, int controlValue) {
+
+    if (controlValue < 0) controlValue = 0;
+    if (controlValue > 127) controlValue = 127;
+
+    wah->last_value = controlValue;
+    controlValue= 127 - controlValue;
+
+    float t = controlValue / 127.0f;
+
+    wah->comp = 2.0f - t * 0.5f;
+    wah->currentFreq = wah->freqMin + (wah->freqMax - wah->freqMin) * t;
+
+}
+
+// Calculate filter coefficients
+
+static void wah_computeCoefficients(WahWahControl* wah) {
+
+    float freq = wah->currentFreq;
+    float q = 0.707f;//0.5f;
+    float omega = 2.0f * M_PI * freq / wah->sr;
+    float alpha = sinf(omega) / (2.0f * q);
+    float cosw = cosf(omega);
+
+    float b0 = alpha;
+    float b1 = 0.0f;
+    float b2 = -alpha;
+    float a0 = 1.0f + alpha;
+    float a1 = -2.0f * cosw;
+    float a2 = 1.0f - alpha;
+
+#if defined(__SSE2__)
+    if(using_SSE2 && 0) {
+
+            float invA0 = 1.0f / a0;
+
+            wah->aa0 = _mm_set1_ps(b0 * invA0);
+            wah->aa1 = _mm_set1_ps(b1 * invA0);
+            wah->aa2 = _mm_set1_ps(b2 * invA0);
+            wah->bb1 = _mm_set1_ps(a1 * invA0);
+            wah->bb2 = _mm_set1_ps(a2 * invA0);
+        return;
+    }
+#endif
+
+    wah->a0 = b0 / a0;
+    wah->a1 = b1 / a0;
+    wah->a2 = b2 / a0;
+    wah->b1 = a1 / a0;
+    wah->b2 = a2 / a0;
+}
+
+// Process one channel
+
+static float wah_processSample(WahWahControl* wah, float x, int ch) {
+    float y = wah->a0 * x
+            + wah->a1 * wah->xHistory[ch][0]
+            + wah->a2 * wah->xHistory[ch][1]
+            - wah->b1 * wah->yHistory[ch][0]
+            - wah->b2 * wah->yHistory[ch][1];
+
+    wah->xHistory[ch][1] = wah->xHistory[ch][0];
+    wah->xHistory[ch][0] = x;
+    wah->yHistory[ch][1] = wah->yHistory[ch][0];
+    wah->yHistory[ch][0] = y;
+
+    return y;
+}
+
+// Process a stereo sample
+
+static void wah_processStereo(WahWahControl* wah, float* left, float* right) {
+    wah_computeCoefficients(wah);
+
+#if defined(__SSE2__)
+    if(using_SSE2 && 0) {
+        __m128 x0 = _mm_set_ps(0.0f, 0.0f, *right, *left);
+
+        // x[n-1], x[n-2], y[n-1], y[n-2]
+        __m128 x1 = _mm_set_ps(0.0f, 0.0f, wah->xHistory[1][0], wah->xHistory[0][0]);
+        __m128 x2 = _mm_set_ps(0.0f, 0.0f, wah->xHistory[1][1], wah->xHistory[0][1]);
+        __m128 y1 = _mm_set_ps(0.0f, 0.0f, wah->yHistory[1][0], wah->yHistory[0][0]);
+        __m128 y2 = _mm_set_ps(0.0f, 0.0f, wah->yHistory[1][1], wah->yHistory[0][1]);
+
+        // y[n] = a0*x0 + a1*x1 + a2*x2 - b1*y1 - b2*y2
+        __m128 y = _mm_add_ps(_mm_add_ps(_mm_mul_ps(wah->aa0, x0),
+                                         _mm_mul_ps(wah->aa1, x1)),
+                              _mm_add_ps(_mm_mul_ps(wah->aa2, x2),
+                                         _mm_sub_ps(_mm_setzero_ps(),
+                                         _mm_add_ps(_mm_mul_ps(wah->bb1, y1),
+                                         _mm_mul_ps(wah->bb2, y2)))));
+
+        float yL = ((float*)&y)[0];
+        float yR = ((float*)&y)[1];
+
+        wah->xHistory[0][1] = wah->xHistory[0][0];
+        wah->xHistory[0][0] = *left;
+        wah->xHistory[1][1] = wah->xHistory[1][0];
+        wah->xHistory[1][0] = *right;
+
+        wah->yHistory[0][1] = wah->yHistory[0][0];
+        wah->yHistory[0][0] = yL;
+        wah->yHistory[1][1] = wah->yHistory[1][0];
+        wah->yHistory[1][0] = yR;
+
+        *left  = yL * wah->comp;
+        *right = yR * wah->comp;
+
+        return;
+    }
+#endif
+    *left  = wah_processSample(wah, *left,  0) * wah->comp;
+    *right = wah_processSample(wah, *right, 1) * wah->comp;
+
+}
+
+// Wah-Wah class functions
+
+WahWahControl VST_proc::wah[SYNTH_CHANS];
+
+// Convert the external MIDI control \[0..127]
+
+void VST_proc::Wah_Wah_Control(int ch, int value) {
+    wah_set_position(&wah[ch], value);
+}
+
+// Process the audio samples
+
+void VST_proc::VST_Wah_Wah(int ch, float *left, float *right, float samplerate, int nsamples) {
+
+
+    if(wah[ch].last_value == 0) return;
+
+    static float _smple = 0.0f;
+    if(_smple !=samplerate) {
+
+        VST_WahWahReset(samplerate);
+
+        _smple = samplerate;
+    }
+
+    for (int i = 0; i < nsamples; ++i) {
+        wah_processStereo(&wah[ch], &left[i], &right[i]);
+    }
+
+}
+
 
 int VST_proc::VST_mix(float**in, int nchans, int samplerate, int nsamples, int mode) {
 
@@ -4465,8 +4646,17 @@ void VST_proc::VST_setParent(QWidget *parent) {
 
 void VST_proc::VST_LeslieReset() {
     for(int n = 0; n < SYNTH_CHANS; n++) {
+
         leslieON[n] = false;
         leslie[n] = aleslie;
+
+    }
+}
+
+void VST_proc::VST_WahWahReset(int samplerate) {
+    for(int n = 0; n < SYNTH_CHANS; n++) {
+
+        wah_control_init(&wah[n], samplerate, 400.0f, 2000.0f);
 
     }
 }

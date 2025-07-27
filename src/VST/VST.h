@@ -42,6 +42,10 @@
 #include <QSemaphore>
 #include <QMutex>
 #include "../gui/MainWindow.h"
+#if defined(__SSE2__)
+#include <cmath>
+#include <emmintrin.h> // SSE2
+#endif
 
 #define DELETE(x) {if(x) delete x; x= NULL;}
 
@@ -108,6 +112,23 @@ typedef struct {
     float lastInputLT;
     float lastInputRT;
 } LeslieSpeaker;
+
+typedef struct {
+    int last_value;
+    float comp;
+    float sr;
+    float freqMin;   // Low Freq (ej. 300 Hz)
+    float freqMax;   // High Freq (ej. 2000 Hz)
+    float currentFreq;
+#if defined(__SSE2__)
+    __m128 aa0, aa1, aa2, bb1, bb2;
+#endif
+    float a0, a1, a2, b1, b2;
+
+    float xHistory[2][2];
+    float yHistory[2][2];
+
+} WahWahControl;
 
 class VST_EXT : public QThread {
     Q_OBJECT
@@ -199,6 +220,9 @@ public:
     static int VST_exit();
     static void VST_LeslieReset();
     static void VST_LeslieEffect(float *left, float *right, float samplerate, int nsamples, LeslieSpeaker *Leslie);
+    static void VST_WahWahReset(int samplerate);
+    static void Wah_Wah_Control(int ch, int value);
+    static void VST_Wah_Wah(int ch, float *left, float *right, float samplerate, int nsamples);
     static int VST_mix(float**in, int nchans, int samplerate, int nsamples, int mode = 0);
     static int VST_isLoaded(int chan);
     static bool VST_mix_disable(bool disable);
@@ -239,6 +263,7 @@ public:
 
     static bool leslieON[SYNTH_CHANS];
     static LeslieSpeaker leslie[SYNTH_CHANS];
+    static WahWahControl wah[SYNTH_CHANS];
 
   private:
 #if defined(__SSE2__)
