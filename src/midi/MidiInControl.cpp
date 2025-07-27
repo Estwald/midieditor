@@ -3916,7 +3916,7 @@ int MidiInControl::new_effects(std::vector<unsigned char>* message, int id) {
 
                                 if(evt == 0x90 || (evt == 0xB0  && (vel >= 64))) {
 
-                                    if(action.action >= 20 && action.action <= 30) {
+                                    if(action.action >= 20 && action.action <= 31) {
 
                                         MidiInput::keys_fluid[adev1]^= (1 << (action.action - 30));
                                         if(MidiInput::keys_fluid[adev1] & (1 << (action.action - 30)))
@@ -3941,13 +3941,13 @@ int MidiInControl::new_effects(std::vector<unsigned char>* message, int id) {
 
                             }
 
-                            if(action.action >= 20 && action.action <= 30) {
+                            if(action.action >= 20 && action.action <= 31) {
 
-                                text+= MidiFile::controlChangeName(action.action) + " - " + text2 + "v: " + QString::number(vel);
+                                text+= MidiFile::controlChangeName(action.action == 31 ? 9 : action.action) + " - " + text2 + "v: " + QString::number(vel);
                                 OSD = text;
 
                                 message->at(0) = 0xB0 | ((adev1 & 1) ? ch_down1 : ch_up1);
-                                message->at(1) = action.action;
+                                message->at(1) = action.action == 31 ? 9 : action.action;
                                 message->at(2) = vel;
 
                                 if(action.bypass != -1 && action.bypass != idev) {

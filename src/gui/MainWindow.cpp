@@ -329,6 +329,7 @@ MainWindow::MainWindow(QString initFile)
 
 #ifdef USE_FLUIDSYNTH
     VST_proc::VST_LeslieReset();
+    VST_proc::VST_WahWahReset(44100);
 #endif
 
     tabMatrixWidget = NULL;
@@ -3145,6 +3146,9 @@ void MainWindow::newFile()
 void MainWindow::panic()
 {
     MidiPlayer::panic();
+#ifdef USE_FLUIDSYNTH
+    VST_proc::VST_WahWahReset(fluid_output->_sample_rate);
+#endif
 }
 
 void MainWindow::screenLockPressed(bool enable)

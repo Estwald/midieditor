@@ -599,6 +599,7 @@ InputActionItem::InputActionItem(InputActionListWidget* parent, int index, int n
         inActiondata.max = v;
         maxdial->setValue(v);
         saveActionSettings(inActiondata, _index, _number);
+
     });
 
     connect(mindialBPM, QOverload<int>::of(&QDialE::valueChanged), [=](int v)
@@ -640,11 +641,16 @@ InputActionItem::InputActionItem(InputActionListWidget* parent, int index, int n
     });
 
 
-    mindial->setValue(inActiondata.min);
-    maxdial->setValue(inActiondata.max);
+    if((inActiondata.category == CATEGORY_SEQUENCER &&
+         ((inActiondata.action >= SEQUENCER_SCALE_1_UP && inActiondata.action <= SEQUENCER_SCALE_ALL_UP) ||
+          (inActiondata.action >= SEQUENCER_SCALE_1_DOWN && inActiondata.action <= SEQUENCER_SCALE_ALL_DOWN)))) {
 
-    mindialBPM->setValue(inActiondata.min * 5);
-    maxdialBPM->setValue(inActiondata.max * 5);
+        mindialBPM->setValue(inActiondata.min * 5);
+        maxdialBPM->setValue(inActiondata.max * 5);
+    } else {
+        mindial->setValue(inActiondata.min);
+        maxdial->setValue(inActiondata.max);
+    }
 
     lev0dial->setValue(inActiondata.lev0);
     lev1dial->setValue(inActiondata.lev1);
@@ -855,8 +861,8 @@ InputActionItem::InputActionItem(InputActionListWidget* parent, int index, int n
                 maxlabel->setVisible(false);
                 maxdial->setVisible(false);
                 maxval_label->setVisible(false);
-                mindial->setValue(false);
-                maxdial->setValue(false);
+                mindial->setValue(inActiondata.min);
+                maxdial->setValue(inActiondata.max);
 
             } else {
                 minlabel->setVisible(true);
@@ -1056,8 +1062,8 @@ InputActionItem::InputActionItem(InputActionListWidget* parent, int index, int n
                 maxlabel->setVisible(false);
                 maxdial->setVisible(false);
                 maxval_label->setVisible(false);
-                mindial->setValue(false);
-                maxdial->setValue(false);
+                mindial->setValue(inActiondata.min);
+                maxdial->setValue(inActiondata.max);
 
             } else {
 
@@ -1067,7 +1073,7 @@ InputActionItem::InputActionItem(InputActionListWidget* parent, int index, int n
                 maxlabel->setVisible(true);
                 maxdial->setVisible(true);
                 maxval_label->setVisible(true);
-                mindial->setValue(inActiondata.min);
+                mindial->setValue(inActiondata.min);;
                 maxdial->setValue(inActiondata.max);
             }
 
@@ -1193,8 +1199,8 @@ InputActionItem::InputActionItem(InputActionListWidget* parent, int index, int n
             maxlabel->setVisible(false);
             maxdial->setVisible(false);
             maxval_label->setVisible(false);
-            mindial->setValue(false);
-            maxdial->setValue(false);
+            mindial->setValue(inActiondata.min);
+            maxdial->setValue(inActiondata.max);
 
         } else {
 
@@ -1448,6 +1454,7 @@ int InputActionItem::setActionList(QComboBox *box, InputActionData &inActiondata
         case CATEGORY_FLUIDSYNTH: // Fluidsynth Control
             if(box) {
                 box->clear();
+                box->addItem("Mixer Chan: Wah-Wah Control (internally uses CC: 9)", 31);
                 box->addItem("Midi Chan: Volume (internally uses CC: 20 & CC: 7)", 20);
                 box->addItem("Mixer Chan: Pan (internally uses CC: 21)", 21);
                 box->addItem("Mixer Chan: Gain (internally uses CC: 22)", 22);
