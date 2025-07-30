@@ -2962,7 +2962,7 @@ static void wah_computeCoefficients(WahWahControl* wah) {
     float a2 = 1.0f - alpha;
 
 #if defined(__SSE2__)
-    if(using_SSE2 && 0) {
+    if(using_SSE2) {
 
             float invA0 = 1.0f / a0;
 
@@ -3005,7 +3005,7 @@ static void wah_processStereo(WahWahControl* wah, float* left, float* right) {
     wah_computeCoefficients(wah);
 
 #if defined(__SSE2__)
-    if(using_SSE2 && 0) {
+    if(using_SSE2) {
         __m128 x0 = _mm_set_ps(0.0f, 0.0f, *right, *left);
 
         // x[n-1], x[n-2], y[n-1], y[n-2]
@@ -3041,6 +3041,7 @@ static void wah_processStereo(WahWahControl* wah, float* left, float* right) {
         return;
     }
 #endif
+
     *left  = wah_processSample(wah, *left,  0) * wah->comp;
     *right = wah_processSample(wah, *right, 1) * wah->comp;
 
