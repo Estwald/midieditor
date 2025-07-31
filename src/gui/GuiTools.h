@@ -170,16 +170,17 @@ class QPedalE : public QGroupBox {
 
 public:
 
-    QPedalE(QWidget* parent, QString title);
+    QPedalE(QWidget* parent, QString title, bool use_scalex2 = false);
 
 
 public slots:
 
-    void setVal(int val, bool setcheck = false);
+    void setVal(int val, bool setcheck = false, bool setscalex2 = false);
 
 signals:
 
     void isChecked(bool checked);
+    void scalex2Checked(bool checked);
 
 protected:
 
@@ -190,6 +191,7 @@ private:
     QLabel *PedalVal;
     QTimer *time_update;
     QCheckBox *invCheck;
+    QCheckBox *scalex2Check;
 
     bool on;
 };

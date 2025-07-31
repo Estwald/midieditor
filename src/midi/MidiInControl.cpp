@@ -102,8 +102,10 @@ static bool _notes_only[MAX_INPUT_PAIR] = {false};
 
 bool MidiInControl::invSustainUP[MAX_INPUT_PAIR] = {false};
 bool MidiInControl::invExpressionUP[MAX_INPUT_PAIR] = {false};
+bool MidiInControl::scalex2ExpressionUP[MAX_INPUT_PAIR] = {false};
 bool MidiInControl::invSustainDOWN[MAX_INPUT_PAIR] = {false};
 bool MidiInControl::invExpressionDOWN[MAX_INPUT_PAIR] = {false};
+bool MidiInControl::scalex2ExpressionDOWN[MAX_INPUT_PAIR] = {false};
 
 static int _transpose_note_up[MAX_INPUT_PAIR] = {0};
 static int _transpose_note_down[MAX_INPUT_PAIR] = {0};
@@ -236,9 +238,9 @@ void MidiInControl::update_win() {
     }
 
     sustainUP->setVal(-1, MidiInControl::invSustainUP[cur_pairdev]);
-    expressionUP->setVal(-1, MidiInControl::invExpressionUP[cur_pairdev]);
+    expressionUP->setVal(-1, MidiInControl::invExpressionUP[cur_pairdev], MidiInControl::scalex2ExpressionUP[cur_pairdev]);
     sustainDOWN->setVal(-1, MidiInControl::invSustainDOWN[cur_pairdev]);
-    expressionDOWN->setVal(-1, MidiInControl::invExpressionDOWN[cur_pairdev]);
+    expressionDOWN->setVal(-1, MidiInControl::invExpressionDOWN[cur_pairdev], MidiInControl::scalex2ExpressionDOWN[cur_pairdev]);
 
     seqSel->setCurrentIndex(MidiInput::loadSeq_mode);
 
@@ -301,9 +303,10 @@ void MidiInControl::init_MidiInControl(QWidget *main, QSettings *settings) {
 
         MidiInControl::invSustainUP[pairdev] = _settings->value("MIDIin/MIDIin_invSustainUP" + (pairdev ? QString::number(pairdev) : QString()), false).toBool();
         MidiInControl::invExpressionUP[pairdev] = _settings->value("MIDIin/MIDIin_invExpressionUP" + (pairdev ? QString::number(pairdev) : QString()), false).toBool();
+        MidiInControl::scalex2ExpressionUP[pairdev] = _settings->value("MIDIin/MIDIin_scalex2ExpressionUP" + (pairdev ? QString::number(pairdev) : QString()), false).toBool();
         MidiInControl::invSustainDOWN[pairdev] = _settings->value("MIDIin/MIDIin_invSustainDOWN" + (pairdev ? QString::number(pairdev) : QString()), false).toBool();
         MidiInControl::invExpressionDOWN[pairdev] = _settings->value("MIDIin/MIDIin_invExpressionDOWN" + (pairdev ? QString::number(pairdev) : QString()), false).toBool();
-
+        MidiInControl::scalex2ExpressionDOWN[pairdev] = _settings->value("MIDIin/MIDIin_scalex2ExpressionDOWN" + (pairdev ? QString::number(pairdev) : QString()), false).toBool();
 
         if(_note_duo[pairdev]) _note_zero[pairdev] = false;
 
@@ -1141,7 +1144,7 @@ MidiInControl::MidiInControl(QWidget* parent): QDialog(parent, Qt::WindowSystemM
     sustainUP->setGeometry(QRect(px, 9, 112, 135));
     px+= 120;
 
-    expressionUP = new QPedalE(PedalBox, "Expression UP");
+    expressionUP = new QPedalE(PedalBox, "Expression UP", true);
     expressionUP->setObjectName(QString::fromUtf8("expressionUP"));
     expressionUP->setGeometry(QRect(px, 9, 112, 135));
     px+= 240;
@@ -1151,15 +1154,15 @@ MidiInControl::MidiInControl(QWidget* parent): QDialog(parent, Qt::WindowSystemM
     sustainDOWN->setGeometry(QRect(px, 9, 112, 135));
     px+= 120;
 
-    expressionDOWN = new QPedalE(PedalBox, "Expression DOWN");
+    expressionDOWN = new QPedalE(PedalBox, "Expression DOWN", true);
     expressionDOWN->setObjectName(QString::fromUtf8("expressionDOWN"));
     expressionDOWN->setGeometry(QRect(px, 9, 112, 135));
     px+= 120;
 
     sustainUP->setVal(-1, MidiInControl::invSustainUP[cur_pairdev]);
-    expressionUP->setVal(-1, MidiInControl::invExpressionUP[cur_pairdev]);
+    expressionUP->setVal(-1, MidiInControl::invExpressionUP[cur_pairdev], MidiInControl::scalex2ExpressionUP[cur_pairdev]);
     sustainDOWN->setVal(-1, MidiInControl::invSustainDOWN[cur_pairdev]);
-    expressionDOWN->setVal(-1, MidiInControl::invExpressionDOWN[cur_pairdev]);
+    expressionDOWN->setVal(-1, MidiInControl::invExpressionDOWN[cur_pairdev], MidiInControl::scalex2ExpressionDOWN[cur_pairdev]);
 
     connect(sustainUP, &QPedalE::isChecked, this, [=](bool checked)
     {
@@ -1173,6 +1176,12 @@ MidiInControl::MidiInControl(QWidget* parent): QDialog(parent, Qt::WindowSystemM
         _settings->setValue("MIDIin/MIDIin_invExpressionUP" + (cur_pairdev ? QString::number(cur_pairdev) : QString()), MidiInControl::invExpressionUP[cur_pairdev]);
     });
 
+    connect(expressionUP, &QPedalE::scalex2Checked, this, [=](bool checked)
+    {
+        MidiInControl::scalex2ExpressionUP[cur_pairdev] = checked;
+        _settings->setValue("MIDIin/MIDIin_scalex2ExpressionUP" + (cur_pairdev ? QString::number(cur_pairdev) : QString()), MidiInControl::scalex2ExpressionUP[cur_pairdev]);
+    });
+
     connect(sustainDOWN, &QPedalE::isChecked, this, [=](bool checked)
     {
         MidiInControl::invSustainDOWN[cur_pairdev] = checked;
@@ -1183,6 +1192,12 @@ MidiInControl::MidiInControl(QWidget* parent): QDialog(parent, Qt::WindowSystemM
     {
         MidiInControl::invExpressionDOWN[cur_pairdev] = checked;
         _settings->setValue("MIDIin/MIDIin_invExpressionDOWN" + (cur_pairdev ? QString::number(cur_pairdev) : QString()), MidiInControl::invExpressionDOWN[cur_pairdev]);
+    });
+
+    connect(expressionDOWN, &QPedalE::scalex2Checked, this, [=](bool checked)
+    {
+        MidiInControl::scalex2ExpressionDOWN[cur_pairdev] = checked;
+        _settings->setValue("MIDIin/MIDIin_scalex2ExpressionDOWN" + (cur_pairdev ? QString::number(cur_pairdev) : QString()), MidiInControl::scalex2ExpressionDOWN[cur_pairdev]);
     });
 
 
@@ -1444,15 +1459,15 @@ void MidiInControl::split_reset() {
 
     MidiInControl::invSustainUP[cur_pairdev] = false;
     MidiInControl::invExpressionUP[cur_pairdev] = false;
+    MidiInControl::scalex2ExpressionUP[cur_pairdev] = false;
     MidiInControl::invSustainDOWN[cur_pairdev] = false;
     MidiInControl::invExpressionDOWN[cur_pairdev] = false;
+    MidiInControl::scalex2ExpressionDOWN[cur_pairdev] = false;
 
     sustainUP->setVal(-1, MidiInControl::invSustainUP[cur_pairdev]);
-    expressionUP->setVal(-1, MidiInControl::invExpressionUP[cur_pairdev]);
+    expressionUP->setVal(-1, MidiInControl::invExpressionUP[cur_pairdev], MidiInControl::scalex2ExpressionUP[cur_pairdev]);
     sustainDOWN->setVal(-1, MidiInControl::invSustainDOWN[cur_pairdev]);
-    expressionDOWN->setVal(-1, MidiInControl::invExpressionDOWN[cur_pairdev]);
-
-
+    expressionDOWN->setVal(-1, MidiInControl::invExpressionDOWN[cur_pairdev], MidiInControl::scalex2ExpressionDOWN[cur_pairdev]);
 
     if(file_live) delete file_live;
     file_live = NULL;
@@ -2024,7 +2039,7 @@ void MidiInControl::update_checks() {
     if(MidiInControl::expressionUPval >= 0) {
         int val = MidiInControl::expressionUPval;
         MidiInControl::expressionUPval = -1;
-        expressionUP->setVal(val, MidiInControl::invExpressionUP[cur_pairdev]);
+        expressionUP->setVal(val, MidiInControl::invExpressionUP[cur_pairdev], MidiInControl::scalex2ExpressionUP[cur_pairdev]);
     }
 
     if(MidiInControl::sustainDOWNval >= 0) {
@@ -2036,7 +2051,7 @@ void MidiInControl::update_checks() {
     if(MidiInControl::expressionDOWNval >= 0) {
         int val = MidiInControl::expressionDOWNval;
         MidiInControl::expressionDOWNval = -1;
-        expressionDOWN->setVal(val, MidiInControl::invExpressionDOWN[cur_pairdev]);
+        expressionDOWN->setVal(val, MidiInControl::invExpressionDOWN[cur_pairdev], MidiInControl::scalex2ExpressionDOWN[cur_pairdev]);
     }
 
     for(int pairdev = 0; pairdev < MAX_INPUT_PAIR; pairdev++) {
@@ -2776,6 +2791,12 @@ int MidiInControl::new_effects(std::vector<unsigned char>* message, int id) {
 
                 int val = message->at(2);
 
+                if(MidiInControl::scalex2ExpressionDOWN[dev]) {
+                  val*=2;
+                  if(val > 127)
+                      val = 127;
+                }
+
                 if(MidiInControl::invExpressionDOWN[dev])
                     val = 127 - val;
                 message->at(2) = val;
@@ -2788,6 +2809,12 @@ int MidiInControl::new_effects(std::vector<unsigned char>* message, int id) {
             if(ch == MidiInControl::inchannelUp(dev)) {
 
                 int val = message->at(2);
+
+                if(MidiInControl::scalex2ExpressionUP[dev]) {
+                    val*=2;
+                    if(val > 127)
+                        val = 127;
+                }
 
                 if(MidiInControl::invExpressionUP[dev])
                     val = 127 - val;

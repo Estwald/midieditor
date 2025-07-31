@@ -146,8 +146,10 @@ public:
 
     static bool invSustainUP[MAX_INPUT_PAIR];
     static bool invExpressionUP[MAX_INPUT_PAIR];
+    static bool scalex2ExpressionUP[MAX_INPUT_PAIR];
     static bool invSustainDOWN[MAX_INPUT_PAIR];
     static bool invExpressionDOWN[MAX_INPUT_PAIR];
+    static bool scalex2ExpressionDOWN[MAX_INPUT_PAIR];
 
     static QString ActionGP;
     static QString SequencerGP;

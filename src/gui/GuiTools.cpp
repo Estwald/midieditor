@@ -435,7 +435,7 @@ void QLedBoxE::paintEvent(QPaintEvent* event) {
 /* QPedalE                                                                */
 /***************************************************************************/
 
-QPedalE::QPedalE(QWidget* parent, QString title) : QGroupBox(parent) {
+QPedalE::QPedalE(QWidget* parent, QString title, bool use_scalex2) : QGroupBox(parent) {
 
     on = false;
 
@@ -460,6 +460,19 @@ QPedalE::QPedalE(QWidget* parent, QString title) : QGroupBox(parent) {
         emit isChecked(checked);
     });
 
+    scalex2Check = new QCheckBox(this);
+    scalex2Check->setObjectName(QString::fromUtf8("scalex2Check"));
+    scalex2Check->setGeometry(QRect(85, 50, 47, 12));
+    scalex2Check->setCheckable(true);
+
+    if(!use_scalex2)
+        scalex2Check->setVisible(false);
+
+    connect(scalex2Check, &QCheckBox::clicked, this, [=](bool checked)
+    {
+        emit scalex2Checked(checked);
+    });
+
     QFont font;
     font.setPointSize(6);
     QLabel *invTCheck = new QLabel(this);
@@ -468,6 +481,15 @@ QPedalE::QPedalE(QWidget* parent, QString title) : QGroupBox(parent) {
     invTCheck->setAlignment(Qt::AlignCenter);
     invTCheck->setFont(font);
     invTCheck->setText("INVERT");
+
+    QLabel *scalex2TCheck = new QLabel(this);
+    scalex2TCheck->setObjectName(QString::fromUtf8("scalex2TCheck"));
+    scalex2TCheck->setGeometry(QRect(85-15, 62, 47, 21));
+    scalex2TCheck->setAlignment(Qt::AlignCenter);
+    scalex2TCheck->setFont(font);
+    scalex2TCheck->setText("SCALEx2");
+    if(!use_scalex2)
+        scalex2TCheck->setVisible(false);
 
     time_update = new QTimer(this);
 
@@ -481,9 +503,10 @@ QPedalE::QPedalE(QWidget* parent, QString title) : QGroupBox(parent) {
     });
 }
 
-void QPedalE::setVal(int val, bool setcheck) {
+void QPedalE::setVal(int val, bool setcheck, bool setscalex2) {
 
     invCheck->setChecked(setcheck);
+    scalex2Check->setChecked(setscalex2);
 
     if(val < 0)
         return;
