@@ -1645,6 +1645,7 @@ void fluid_Thread::run()
          if(vst_fluid_lock && vst_fluid_lock->tryLock()) {
 
              VST_proc::VST_mix(dry, /*n_aud_chan*/PRE_CHAN, (_proc->_player_wav) ? _proc->_wave_sample_rate : _proc->_sample_rate, fluid_out_samples, 1);
+
              if(sharedAudioBuffer)
                 VST_proc::VST_external_mix((_proc->_player_wav) ? _proc->_wave_sample_rate : _proc->_sample_rate, fluid_out_samples);
 
@@ -1666,7 +1667,7 @@ void fluid_Thread::run()
 
          _proc->frames = _proc->time_frame.msecsSinceStartOfDay();
 
-         _count_samples%= _proc->_wave_sample_rate;
+         _count_samples%= (_proc->_player_wav) ? _proc->_wave_sample_rate : _proc->_sample_rate;
 
          if(1) {
 
@@ -1686,7 +1687,7 @@ void fluid_Thread::run()
 
              if(WAVE_MOD) {
                  for(m = 0; m < SYNTH_CHANS; m++) {
-                     step_wm[m] = (6.2831f * ((float) _proc->freq_WaveModulator[m]) / ((double) _proc->_wave_sample_rate));
+                     step_wm[m] = (6.2831f * ((float) _proc->freq_WaveModulator[m]) / ((double) ((_proc->_player_wav) ? _proc->_wave_sample_rate : _proc->_sample_rate)));
                  }
              }
 
