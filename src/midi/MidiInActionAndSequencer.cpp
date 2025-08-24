@@ -1455,6 +1455,13 @@ int InputActionItem::setActionList(QComboBox *box, InputActionData &inActiondata
             if(box) {
                 box->clear();
                 box->addItem("Mixer Chan: Wah-Wah Control (internally uses CC: 9)", 31);
+                box->addItem("Mixer Chan: Leslie On/Off (internally uses CC: 85)", 32);
+                box->addItem("Mixer Chan: Leslie Deep Bass (internally uses CC: 86)", 33);
+                box->addItem("Mixer Chan: Leslie Rot Bass (internally uses CC: 87)", 34);
+                box->addItem("Mixer Chan: Leslie Freq Cut (internally uses CC: 88)", 35);
+                box->addItem("Mixer Chan: Leslie Deep Treble (internally uses CC: 89)", 36);
+                box->addItem("Mixer Chan: Leslie Rot Treble (internally uses CC: 90)", 37);
+
                 box->addItem("Midi Chan: Volume (internally uses CC: 20 & CC: 7)", 20);
                 box->addItem("Mixer Chan: Pan (internally uses CC: 21)", 21);
                 box->addItem("Mixer Chan: Gain (internally uses CC: 22)", 22);
