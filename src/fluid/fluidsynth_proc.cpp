@@ -854,7 +854,12 @@ int fluidsynth_proc::SendMIDIEvent(QByteArray array, int track)
 
             synth_gain = ((float) ((unsigned) array[2] * 2000 / 127)) / 1000.0;
 
-            fluid_synth_set_gain(synth, (float) synth_gain);
+            float _gain = synth_gain;
+
+            if(_gain > 1.0f)
+                _gain = (_gain * _gain);
+
+            fluid_synth_set_gain(synth, (float) _gain);
 
             if(fluid_control && !fluid_control->disable_mainmenu) {
 
@@ -873,6 +878,43 @@ int fluidsynth_proc::SendMIDIEvent(QByteArray array, int track)
 */
             return 0;
 
+        } else if((unsigned) array[1] >= 85 && (unsigned) array[1] <= 90) {
+// Leslie CC
+            int n = channel + desp_channelVST;
+
+            switch((unsigned) array[1]) {
+                case 85: {
+                    VST_proc::leslieON[n] = ((unsigned) array[2]) >= 64;
+                    break;
+                }
+                case 86: {
+                    VST_proc::leslie[n].depthBass = ((float) ((unsigned) array[2]))/254.0f;
+                    break;
+                }
+                case 87: {
+                    VST_proc::leslie[n].rotationSpeedBass = 0.1f + 19.9f * (((float) ((unsigned) array[2]))/127.0f);
+                    break;
+                }
+                case 88: {
+                    VST_proc::leslie[n].frequency = 20.0f + 4980.0f * (((float) ((unsigned) array[2]))/127.0f);
+                    break;
+                }
+                case 89: {
+                    VST_proc::leslie[n].depthTreble = ((float) ((unsigned) array[2]))/254.0f;
+                    break;
+                }
+                case 90: {
+                    VST_proc::leslie[n].rotationSpeedTreble = 0.1f + 19.9f * (((float) ((unsigned) array[2]))/127.0f);
+                    break;
+                }
+            }
+
+            if(fluid_control && !fluid_control->disable_mainmenu) {
+
+                emit changeFilterValue(-1, n);
+            }
+
+            return 0;
         }
 
         return fluid_synth_cc(synth, channel + desp_channel, array[1], array[2]);
@@ -2370,8 +2412,15 @@ bool fluidsynth_proc::getAudioMute(int chan){
 }
 
 void fluidsynth_proc::setSynthGain(int gain){
+
     synth_gain = ((float) gain) / 100.0;
-    fluid_synth_set_gain(synth, (float) synth_gain);
+
+    float _gain = synth_gain;
+
+    if(_gain > 1.0f)
+        _gain = (_gain * _gain);
+
+    fluid_synth_set_gain(synth, (float) _gain);
 }
 
 int fluidsynth_proc::getSynthGain(){

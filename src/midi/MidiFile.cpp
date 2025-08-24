@@ -1377,10 +1377,11 @@ QString MidiFile::controlChangeName(int control)
     case 8: {
         return "Balance (MSB) ";
     }
+#ifdef USE_FLUIDSYNTH
     case 9: {
         return "Midi Editor CC Wah-Wah";
     }
-
+#endif
     case 10: {
         return "Pan (MSB)";
     }
@@ -1570,6 +1571,26 @@ QString MidiFile::controlChangeName(int control)
     case 84: {
         return "Portamento Control ";
     }
+#ifdef USE_FLUIDSYNTH
+    case 85: {
+        return "Midi Editor CC Leslie On/off";
+    }
+    case 86: {
+        return "Midi Editor CC Leslie Deep-Bass";
+    }
+    case 87: {
+        return "Midi Editor CC Leslie Rot-Bass";
+    }
+    case 88: {
+        return "Midi Editor CC Leslie Freq Cut";
+    }
+    case 89: {
+        return "Midi Editor CC Leslie Deep-Treble";
+    }
+    case 90: {
+        return "Midi Editor CC Leslie Rot-Treble";
+    }
+#endif
 
     case 91: {
         return "Effects 1 Depth (default: Reverb Send)";
