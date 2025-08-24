@@ -3062,9 +3062,10 @@ void VST_proc::Wah_Wah_Control(int ch, int value) {
 void VST_proc::VST_Wah_Wah(int ch, float *left, float *right, float samplerate, int nsamples) {
 
 
-    if(wah[ch].last_value == 0) return;
+    if(wah[ch].last_value == 0) return; // wah is off
 
     static float _smple = 0.0f;
+
     if(_smple !=samplerate) {
 
         VST_WahWahReset(samplerate);
@@ -3077,7 +3078,6 @@ void VST_proc::VST_Wah_Wah(int ch, float *left, float *right, float samplerate, 
     }
 
 }
-
 
 int VST_proc::VST_mix(float**in, int nchans, int samplerate, int nsamples, int mode) {
 

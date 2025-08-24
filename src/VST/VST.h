@@ -114,6 +114,7 @@ typedef struct {
 } LeslieSpeaker;
 
 typedef struct {
+
     int last_value;
     float comp;
     float sr;
