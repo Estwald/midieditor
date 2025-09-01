@@ -93,6 +93,8 @@ int main(int argc, char* argv[])
 
     QApplication a(argc, argv);
 
+    QApplication::setStyle("WindowsVista");
+
     Metronome::_instance =  new Metronome();
 
 #ifdef USE_FLUIDSYNTH
