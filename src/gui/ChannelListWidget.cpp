@@ -311,7 +311,7 @@ void ChannelListItem::instrument()
     if(!visibleAction)
         return;
     if(visibleAction->isChecked())
-    emit selectInstrumentClicked(channel);
+        emit selectInstrumentClicked(channel);
 }
 
 void ChannelListItem::SoundEffect()
@@ -319,7 +319,7 @@ void ChannelListItem::SoundEffect()
     if(!visibleAction)
         return;
     if(visibleAction->isChecked())
-    emit selectSoundEffectClicked(channel);
+        emit selectSoundEffectClicked(channel);
 }
 
 #ifdef USE_FLUIDSYNTH
@@ -342,7 +342,7 @@ void ChannelListItem::LoadVST1()
     if(!visibleAction)
         return;
     if(visibleAction->isChecked())
-    emit LoadVSTClicked(channel, 0);
+        emit LoadVSTClicked(channel, 0);
 }
 
 void ChannelListItem::viewVST1()
@@ -379,7 +379,7 @@ void ChannelListItem::viewVST2()
     if(!visibleAction)
         return;
     if(visibleAction->isChecked())
-    emit LoadVSTClicked(channel + 16, 1);
+        emit LoadVSTClicked(channel + 16, 1);
 }
 #endif
 
@@ -402,7 +402,7 @@ void ChannelListItem::onBeforeUpdate()
         track = MidiOutput::file->track(NewNoteTool::editTrack());
 
     int track_index = MidiOutput::AllTracksToOne ? MidiOutput::_midiOutFluidMAP[0]
-            : MidiOutput::_midiOutFluidMAP[track->device_index()];
+                                                 : MidiOutput::_midiOutFluidMAP[track->device_index()];
 
     bool fluid_visible = track_index >= 0;
 
@@ -423,7 +423,7 @@ void ChannelListItem::onBeforeUpdate()
     int prog = MidiOutput::file->channel(channel)->progBankAtTick(MidiOutput::file->cursorTick(), &bank, track);
 
     if(channel >= 0 && channel < 16 && (channel != 9 ||
-                                        (channel == 9 && track->fluid_index() != 0 && fluid_visible && !MidiOutput::file->DrumUseCh9))) {
+                                         (channel == 9 && track->fluid_index() != 0 && fluid_visible && !MidiOutput::file->DrumUseCh9))) {
 
         spinOctave->setVisible(true);
         MidiOutput::file->Bank_MIDI[channel + 4 * (track_index != 0) + 16 * track_index]=bank;
@@ -453,7 +453,7 @@ void ChannelListItem::onBeforeUpdate()
         if (channel == 16) {
             text = "Events affecting all channels";
         } else {
-                text +=" / Bank "+ QString::asprintf("%3.3u", MidiOutput::file->Bank_MIDI[channel + 4 * (track->device_index()!=0) + 16 * track->device_index()]);
+            text +=" / Bank "+ QString::asprintf("%3.3u", MidiOutput::file->Bank_MIDI[channel + 4 * (track->device_index()!=0) + 16 * track->device_index()]);
         }
     } else {
         text+=" - Drums";
@@ -491,7 +491,7 @@ void ChannelListItem::onBeforeUpdate()
         emit channelStateChanged();
     }
 
-   reentry = false;
+    reentry = false;
 }
 
 void ChannelListItem::doubleClick()
@@ -522,13 +522,13 @@ void ChannelListItem::paintEvent(QPaintEvent* event) {
     if(this->channel == NewNoteTool::editChannel()) {
         QColor c(0x80ffff);
         c.setAlpha(32);
-//#80ff80
-            p->fillRect(0, 0, width(), height() - 2, c);
+        //#80ff80
+        p->fillRect(0, 0, width(), height() - 2, c);
     } else if(this->channel == 9) {
         QColor c(0x80ff80);
         c.setAlpha(32);
 
-            p->fillRect(0, 0, width(), height() - 2, c);
+        p->fillRect(0, 0, width(), height() - 2, c);
     }
 
     p->end();
@@ -659,11 +659,11 @@ void ChannelListWidget::OctaveUpdate()
     }
 
 
-     emit WidgeUpdate();
+    emit WidgeUpdate();
     // emit channelStateChanged();
 
-    //items.at(0)->spinOctave->valueChanged(OctaveChan_MIDI[0]);
-    // items.at(0)->spinOctave->setValue(OctaveChan_MIDI[0]);
+           //items.at(0)->spinOctave->valueChanged(OctaveChan_MIDI[0]);
+           // items.at(0)->spinOctave->setValue(OctaveChan_MIDI[0]);
 
     autolock = 0;
 }
@@ -675,7 +675,7 @@ void ChannelListWidget::update()
 
     this->setCurrentRow(0);
 
-    //foreach (ChannelListItem* item, items) {
+           //foreach (ChannelListItem* item, items) {
     for(int chan = 0; chan < 17; chan++) {
         ChannelListItem* item = items.at(chan);
 
